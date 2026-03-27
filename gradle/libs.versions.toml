@@ -51,6 +51,9 @@ firebase-auth-ktx             = { group = "com.google.firebase",       name = "f
 firebase-firestore-ktx        = { group = "com.google.firebase",       name = "firebase-firestore-ktx"                                    }
 firebase-storage-ktx          = { group = "com.google.firebase",       name = "firebase-storage-ktx"                                      }
 
+# Material Icons Extended
+material-icons-extended       = { group = "androidx.compose.material", name = "material-icons-extended"                                    }
+
 # Coil
 coil-compose                  = { group = "io.coil-kt",                name = "coil-compose",          version.ref = "coil"                }
 
