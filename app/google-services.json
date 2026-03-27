@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "253043874975",
+    "project_id": "mahalleustasidonem",
+    "storage_bucket": "mahalleustasidonem.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:253043874975:android:3814c5694431cf6de316aa",
+        "android_client_info": {
+          "package_name": "com.example.mahalleustasi"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAZfQLUajxsqhBkeyTNuk8q4kvxXmYSYDM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
