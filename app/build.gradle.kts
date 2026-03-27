@@ -2,19 +2,21 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.hilt)
+    alias(libs.plugins.google.services)
 }
 
 android {
-    namespace = "com.example.mahalleustasi"
-    compileSdk = 35
+    namespace   = "com.example.mahalleustasi"
+    compileSdk  = 35
 
     defaultConfig {
-        applicationId = "com.example.mahalleustasi"
-        minSdk = 24
-        targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
-
+        applicationId         = "com.example.mahalleustasi"
+        minSdk                = 24
+        targetSdk             = 35
+        versionCode           = 1
+        versionName           = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -27,6 +29,7 @@ android {
             )
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -40,15 +43,44 @@ android {
 }
 
 dependencies {
-
+    // ── Core ──────────────────────────────────────────────────────────────────
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
+
+    // ── Compose ───────────────────────────────────────────────────────────────
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+
+    // ── Lifecycle / ViewModel ─────────────────────────────────────────────────
+    implementation(libs.lifecycle.viewmodel.compose)
+    implementation(libs.lifecycle.runtime.compose)
+
+    // ── Navigation ────────────────────────────────────────────────────────────
+    implementation(libs.navigation.compose)
+
+    // ── Hilt DI ───────────────────────────────────────────────────────────────
+    implementation(libs.hilt.android)
+    implementation(libs.androidx.animation.core.lint)
+    ksp(libs.hilt.compiler)
+    implementation(libs.hilt.navigation.compose)
+
+    // ── Firebase ──────────────────────────────────────────────────────────────
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth.ktx)
+    implementation(libs.firebase.firestore.ktx)
+    implementation(libs.firebase.storage.ktx)
+
+    // ── Image Loading ─────────────────────────────────────────────────────────
+    implementation(libs.coil.compose)
+
+    // ── Coroutines ────────────────────────────────────────────────────────────
+    implementation(libs.kotlinx.coroutines.android)
+
+    // ── Testing ───────────────────────────────────────────────────────────────
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
