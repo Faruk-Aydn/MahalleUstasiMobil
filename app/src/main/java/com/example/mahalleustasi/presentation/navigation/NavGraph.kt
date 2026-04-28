@@ -57,6 +57,12 @@ fun NavGraph(
             )
         }
 
+        composable(Screen.JobCreate.route) {
+            com.example.mahalleustasi.presentation.screens.job.JobCreateScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
         composable(
             route = Screen.Profile.route,
             arguments = listOf(navArgument("userId") { type = NavType.StringType })

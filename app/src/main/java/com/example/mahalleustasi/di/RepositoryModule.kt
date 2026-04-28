@@ -2,6 +2,8 @@ package com.example.mahalleustasi.di
 
 import com.example.mahalleustasi.data.repository.AuthRepositoryImpl
 import com.example.mahalleustasi.domain.repository.AuthRepository
+import com.example.mahalleustasi.data.repository.JobRepositoryImpl
+import com.example.mahalleustasi.domain.repository.JobRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -21,4 +23,10 @@ abstract class RepositoryModule {
     abstract fun bindAuthRepository(
         authRepositoryImpl: AuthRepositoryImpl
     ): AuthRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindJobRepository(
+        jobRepositoryImpl: JobRepositoryImpl
+    ): JobRepository
 }
