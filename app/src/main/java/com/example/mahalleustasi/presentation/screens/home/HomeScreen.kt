@@ -32,6 +32,7 @@ fun HomeScreen(
     onNavigateToCreateJob: () -> Unit,
     onNavigateToOffers:    () -> Unit,
     onNavigateToProfile:   (String) -> Unit,
+    onNavigateToJobDetail: (String) -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()

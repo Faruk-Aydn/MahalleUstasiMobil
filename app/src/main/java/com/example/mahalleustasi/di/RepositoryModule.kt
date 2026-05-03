@@ -2,6 +2,7 @@ package com.example.mahalleustasi.di
 
 import com.example.mahalleustasi.data.repository.AuthRepositoryImpl
 import com.example.mahalleustasi.domain.repository.AuthRepository
+import com.example.mahalleustasi.data.repository.JobRepositoryImpl
 import com.example.mahalleustasi.domain.repository.JobRepository
 import com.example.mahalleustasi.data.repository.OfferRepositoryImpl
 import com.example.mahalleustasi.domain.repository.OfferRepository

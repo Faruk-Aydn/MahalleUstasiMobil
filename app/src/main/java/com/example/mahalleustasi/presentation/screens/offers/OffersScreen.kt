@@ -110,7 +110,7 @@ fun MyOfferItem(offer: Offer, onClick: () -> Unit) {
             
             Spacer(Modifier.height(12.dp))
             
-            Divider(alpha = 0.1f)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
             
             Spacer(Modifier.height(12.dp))
             

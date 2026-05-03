@@ -12,18 +12,20 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import android.widget.Toast
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.mahalleustasi.domain.model.Job
+import com.example.mahalleustasi.domain.model.Offer
 import com.example.mahalleustasi.ui.theme.BrandOrange80
 import java.text.SimpleDateFormat
 import java.util.*
@@ -163,7 +165,7 @@ private fun JobDetailContent(
             }
         }
 
-        Divider(modifier = Modifier.padding(vertical = 8.dp), alpha = 0.1f)
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
         // İlan Veren Bilgisi
         Row(
@@ -194,7 +196,7 @@ private fun JobDetailContent(
             }
         }
 
-        Divider(modifier = Modifier.padding(vertical = 8.dp), alpha = 0.1f)
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
         // Açıklama
         Text(
