@@ -18,21 +18,38 @@ class AnalyzeImageUseCase @Inject constructor() {
         emit(Resource.Loading)
         try {
             val generativeModel = GenerativeModel(
-                modelName = "gemini-2.0-flash",
+                modelName = "gemini-2.5-flash-lite",
                 apiKey = BuildConfig.GEMINI_API_KEY
             )
 
             val prompt = """
-                Sen usta ve müşterileri buluşturan "Mahalle Ustası" adlı bir platformda yapay zeka asistanısın. 
-                Sana bir arıza veya tamirat gerektiren eşyanın fotoğrafını gönderiyorum. 
-                Lütfen bu fotoğrafı incele ve bana **sadece aşağıdaki JSON formatında** dönüş yap. Markdown tagleri veya ekstra metin kullanma.
+                Sen "Mahalle Ustası" platformu için çalışan bir görüntü analiz asistanısın.
+                Türk müşterilerin ev/işyeri arızalarını fotoğraflayıp usta bulmasına yardımcı oluyorsun.
                 
-                {
-                  "title": "İlan için kısa ve açıklayıcı bir başlık (örnek: Kırık Musluk Tamiri)",
-                  "description": "Sorunun ne olduğuna dair detaylı açıklama (örnek: Banyo musluğundan su damlatıyor, contası değişmesi gerekebilir.)",
-                  "category": "Şu kategorilerden biri olmalı: REPAIR, CLEANING, MOVING, TUTORING, GARDENING, TECH_SUPPORT, OTHER",
-                  "estimatedCost": "Tahmini maliyet aralığı (örnek: 200 - 500 TL)"
-                }
+                Fotoğraftaki arızayı veya tamirat ihtiyacını analiz et ve SADECE aşağıdaki JSON formatında yanıt ver.
+                Kesinlikle başka metin, açıklama veya markdown ekleme.
+                
+                KURALLAR:
+                - title: Kısa, net, Türkçe. Sadece arızayı tanımla. (Maks 60 karakter)
+                - description: Sorunu, muhtemel sebebini ve ustaya ne yapması gerektiğini anlat. (2-3 cümle, Türkçe)
+                - category: Aşağıdaki listeden SADECE biri olmalı (büyük harf, Türkçe değil):
+                    REPAIR = Tamirat/Tadilat (boru, musluk, kapı, kilit, pencere, çatı vb.)
+                    CLEANING = Temizlik (halı, derin temizlik, cam silme vb.)
+                    MOVING = Nakliyat/Taşımacılık
+                    TUTORING = Özel Ders/Eğitim
+                    GARDENING = Bahçe/Peyzaj
+                    TECH_SUPPORT = Elektrik/Elektronik/Teknoloji (kablo, priz, beyaz eşya vb.)
+                    OTHER = Diğer
+                - estimatedCost: Türkiye piyasasına göre gerçekçi TL tahmini. Örnek: "150 - 300 TL"
+                
+                ÖRNEK ÇIKTILAR:
+                Musluk arızası için:
+                {"title":"Mutfak Musluğu Damlıyor","description":"Mutfak lavabo musluğundan sürekli su damlaması var. Conta veya kartuş yıpranmış olabilir. Ustanın musluğu söküp conta/kartuş değişimi yapması gerekiyor.","category":"REPAIR","estimatedCost":"100 - 250 TL"}
+                
+                Elektrik arızası için:
+                {"title":"Priz Çalışmıyor","description":"Odadaki priz elektrik vermiyor. Sigorta atmış ya da iç kablo kopmuş olabilir. Elektrikçinin sigortaları ve kablo bağlantılarını kontrol etmesi gerekiyor.","category":"TECH_SUPPORT","estimatedCost":"80 - 200 TL"}
+                
+                Şimdi gönderilen fotoğrafı analiz et ve sadece JSON döndür:
             """.trimIndent()
 
             val response = generativeModel.generateContent(
