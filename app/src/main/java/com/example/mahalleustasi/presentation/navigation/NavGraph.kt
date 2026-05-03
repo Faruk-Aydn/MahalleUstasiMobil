@@ -49,7 +49,7 @@ fun NavGraph(
         // ── Main ─────────────────────────────────────────────────────────
         composable(Screen.Home.route) {
             HomeScreen(
-                onNavigateToJobCreate = { navController.navigate(Screen.JobCreate.route) },
+                onNavigateToCamera = { navController.navigate(Screen.Camera.route) },
                 onNavigateToOffers    = { navController.navigate(Screen.Offers.route)   },
                 onNavigateToProfile   = { userId ->
                     navController.navigate(Screen.Profile.createRoute(userId))
@@ -57,7 +57,32 @@ fun NavGraph(
             )
         }
 
-        composable(Screen.JobCreate.route) {
+        composable(Screen.Camera.route) {
+            com.example.mahalleustasi.presentation.screens.camera.CameraScreen(
+                onAnalysisSuccess = { result ->
+                    val route = Screen.JobCreate.createRoute(
+                        title = result.title,
+                        desc = result.description,
+                        cat = result.category.name,
+                        budget = result.estimatedCost
+                    )
+                    navController.navigate(route) {
+                        popUpTo(Screen.Camera.route) { inclusive = true }
+                    }
+                },
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = Screen.JobCreate.route,
+            arguments = listOf(
+                navArgument("title") { type = NavType.StringType; defaultValue = "" },
+                navArgument("desc") { type = NavType.StringType; defaultValue = "" },
+                navArgument("cat") { type = NavType.StringType; defaultValue = "" },
+                navArgument("budget") { type = NavType.StringType; defaultValue = "" }
+            )
+        ) {
             com.example.mahalleustasi.presentation.screens.job.JobCreateScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
