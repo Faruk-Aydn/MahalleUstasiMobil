@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -6,6 +8,13 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.google.services)
 }
+
+val properties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    properties.load(localPropertiesFile.inputStream())
+}
+val geminiApiKey = properties.getProperty("GEMINI_API_KEY", "")
 
 android {
     namespace   = "com.example.mahalleustasi"
@@ -18,6 +27,8 @@ android {
         versionCode           = 1
         versionName           = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        
+        buildConfigField("String", "GEMINI_API_KEY", "\"$geminiApiKey\"")
     }
 
     buildTypes {
@@ -39,6 +50,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -80,6 +92,16 @@ dependencies {
 
     // ── Coroutines ────────────────────────────────────────────────────────────
     implementation(libs.kotlinx.coroutines.android)
+
+    // ── CameraX ───────────────────────────────────────────────────────────────
+    implementation(libs.camerax.core)
+    implementation(libs.camerax.camera2)
+    implementation(libs.camerax.lifecycle)
+    implementation(libs.camerax.view)
+    implementation("com.google.guava:guava:31.1-android")
+
+    // ── Generative AI (Gemini) ────────────────────────────────────────────────
+    implementation(libs.generativeai)
 
     // ── Testing ───────────────────────────────────────────────────────────────
     testImplementation(libs.junit)
