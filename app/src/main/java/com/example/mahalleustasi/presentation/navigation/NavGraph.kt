@@ -10,7 +10,12 @@ import com.example.mahalleustasi.presentation.screens.auth.LoginScreen
 import com.example.mahalleustasi.presentation.screens.auth.RegisterScreen
 import com.example.mahalleustasi.presentation.screens.home.HomeScreen
 import com.example.mahalleustasi.presentation.screens.profile.ProfileScreen
-
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 @Composable
 fun NavGraph(
     navController: NavHostController,
@@ -55,6 +60,13 @@ fun NavGraph(
                     navController.navigate(Screen.Profile.createRoute(userId))
                 }
             )
+        }
+
+        composable(Screen.Offers.route) {
+            // TODO: İlerleyen aşamalarda OffersScreen eklenecek
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(text = "Teklifler Sayfası Yakında!", style = MaterialTheme.typography.titleLarge)
+            }
         }
 
         composable(Screen.Camera.route) {
