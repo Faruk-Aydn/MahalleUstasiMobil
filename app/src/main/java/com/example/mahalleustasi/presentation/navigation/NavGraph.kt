@@ -54,19 +54,23 @@ fun NavGraph(
         // ── Main ─────────────────────────────────────────────────────────
         composable(Screen.Home.route) {
             HomeScreen(
-                onNavigateToCamera = { navController.navigate(Screen.Camera.route) },
+                onNavigateToCreateJob = { navController.navigate(Screen.JobCreate.createRoute()) },
                 onNavigateToOffers    = { navController.navigate(Screen.Offers.route)   },
                 onNavigateToProfile   = { userId ->
                     navController.navigate(Screen.Profile.createRoute(userId))
+                },
+                onNavigateToJobDetail = { jobId ->
+                    navController.navigate(Screen.JobDetail.createRoute(jobId))
                 }
             )
         }
 
         composable(Screen.Offers.route) {
-            // TODO: İlerleyen aşamalarda OffersScreen eklenecek
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(text = "Teklifler Sayfası Yakında!", style = MaterialTheme.typography.titleLarge)
-            }
+            com.example.mahalleustasi.presentation.screens.offers.OffersScreen(
+                onNavigateToJobDetail = { jobId ->
+                    navController.navigate(Screen.JobDetail.createRoute(jobId))
+                }
+            )
         }
 
         composable(Screen.Camera.route) {
@@ -79,7 +83,7 @@ fun NavGraph(
                         budget = result.estimatedCost
                     )
                     navController.navigate(route) {
-                        popUpTo(Screen.Camera.route) { inclusive = true }
+                        popUpTo(Screen.JobCreate.route) { inclusive = true }
                     }
                 },
                 onBackClick = { navController.popBackStack() }
@@ -96,6 +100,16 @@ fun NavGraph(
             )
         ) {
             com.example.mahalleustasi.presentation.screens.job.JobCreateScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToAiAssistant = { navController.navigate(Screen.Camera.route) }
+            )
+        }
+
+        composable(
+            route = Screen.JobDetail.route,
+            arguments = listOf(navArgument("jobId") { type = NavType.StringType })
+        ) {
+            com.example.mahalleustasi.presentation.screens.job.JobDetailScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
         }

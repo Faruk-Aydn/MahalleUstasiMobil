@@ -2,8 +2,9 @@ package com.example.mahalleustasi.di
 
 import com.example.mahalleustasi.data.repository.AuthRepositoryImpl
 import com.example.mahalleustasi.domain.repository.AuthRepository
-import com.example.mahalleustasi.data.repository.JobRepositoryImpl
 import com.example.mahalleustasi.domain.repository.JobRepository
+import com.example.mahalleustasi.data.repository.OfferRepositoryImpl
+import com.example.mahalleustasi.domain.repository.OfferRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -29,4 +30,10 @@ abstract class RepositoryModule {
     abstract fun bindJobRepository(
         jobRepositoryImpl: JobRepositoryImpl
     ): JobRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindOfferRepository(
+        offerRepositoryImpl: OfferRepositoryImpl
+    ): OfferRepository
 }

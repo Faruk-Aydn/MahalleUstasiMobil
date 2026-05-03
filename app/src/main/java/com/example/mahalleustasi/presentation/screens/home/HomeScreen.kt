@@ -29,7 +29,7 @@ import com.example.mahalleustasi.ui.theme.ForestGreen40
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    onNavigateToCamera: () -> Unit,
+    onNavigateToCreateJob: () -> Unit,
     onNavigateToOffers:    () -> Unit,
     onNavigateToProfile:   (String) -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
@@ -40,7 +40,7 @@ fun HomeScreen(
     Scaffold(
         floatingActionButton = {
             FloatingActionButton(
-                onClick        = onNavigateToCamera,
+                onClick        = onNavigateToCreateJob,
                 containerColor = BrandOrange80,
                 contentColor   = Color.White
             ) {
@@ -164,7 +164,7 @@ fun HomeScreen(
             // ── İlan Listesi ──────────────────────────────────────────────
             if (uiState.jobs.isEmpty()) {
                 item {
-                    EmptyJobsView(onCreateJob = onNavigateToCamera)
+                    EmptyJobsView(onCreateJob = onNavigateToCreateJob)
                 }
             } else {
                 val filtered = if (selectedCategory == null) uiState.jobs
@@ -172,7 +172,7 @@ fun HomeScreen(
                 items(filtered) { job ->
                     JobCard(
                         job     = job,
-                        onClick = { /* JobDetail navigasyonu bir sonraki sprintte */ },
+                        onClick = { onNavigateToJobDetail(job.id) },
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
                     )
                 }
