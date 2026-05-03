@@ -1,5 +1,6 @@
 package com.example.mahalleustasi.presentation.screens.job
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.mahalleustasi.core.util.Resource
@@ -27,10 +28,27 @@ data class JobCreateUiState(
 
 @HiltViewModel
 class JobCreateViewModel @Inject constructor(
-    private val jobRepository: JobRepository
+    private val jobRepository: JobRepository,
+    savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(JobCreateUiState())
+    private val titleArg = savedStateHandle.get<String>("title") ?: ""
+    private val descArg = savedStateHandle.get<String>("desc") ?: ""
+    private val budgetArg = savedStateHandle.get<String>("budget") ?: ""
+    private val catArg = savedStateHandle.get<String>("cat") ?: ""
+
+    private val initialCategory = try {
+        if (catArg.isNotBlank()) JobCategory.valueOf(catArg) else JobCategory.OTHER
+    } catch (e: Exception) {
+        JobCategory.OTHER
+    }
+
+    private val _uiState = MutableStateFlow(JobCreateUiState(
+        title = titleArg,
+        description = descArg,
+        budget = budgetArg,
+        category = initialCategory
+    ))
     val uiState = _uiState.asStateFlow()
 
     fun onTitleChange(title: String) {
