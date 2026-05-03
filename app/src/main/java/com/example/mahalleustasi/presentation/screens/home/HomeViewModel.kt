@@ -43,6 +43,9 @@ class HomeViewModel @Inject constructor(
                     is Resource.Error -> {
                         _uiState.update { it.copy(isLoading = false, error = result.message) }
                     }
+                    is Resource.Idle -> {
+                        // Do nothing
+                    }
                 }
             }
         }

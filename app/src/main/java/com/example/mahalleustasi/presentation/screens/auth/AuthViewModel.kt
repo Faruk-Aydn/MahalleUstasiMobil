@@ -44,6 +44,7 @@ class AuthViewModel @Inject constructor(
                 is Resource.Success -> AuthUiState.Success(result.data)
                 is Resource.Error   -> AuthUiState.Error(result.message)
                 is Resource.Loading -> AuthUiState.Loading
+                is Resource.Idle    -> AuthUiState.Idle
             }
         }
     }
@@ -58,6 +59,7 @@ class AuthViewModel @Inject constructor(
                 is Resource.Success -> AuthUiState.Success(result.data)
                 is Resource.Error   -> AuthUiState.Error(result.message)
                 is Resource.Loading -> AuthUiState.Loading
+                is Resource.Idle    -> AuthUiState.Idle
             }
         }
     }
