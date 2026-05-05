@@ -6,6 +6,12 @@ import com.example.mahalleustasi.data.repository.JobRepositoryImpl
 import com.example.mahalleustasi.domain.repository.JobRepository
 import com.example.mahalleustasi.data.repository.OfferRepositoryImpl
 import com.example.mahalleustasi.domain.repository.OfferRepository
+import com.example.mahalleustasi.data.repository.UserRepositoryImpl
+import com.example.mahalleustasi.domain.repository.UserRepository
+import com.example.mahalleustasi.data.repository.ChatRepositoryImpl
+import com.example.mahalleustasi.domain.repository.ChatRepository
+import com.example.mahalleustasi.data.repository.ReviewRepositoryImpl
+import com.example.mahalleustasi.domain.repository.ReviewRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -37,4 +43,22 @@ abstract class RepositoryModule {
     abstract fun bindOfferRepository(
         offerRepositoryImpl: OfferRepositoryImpl
     ): OfferRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindUserRepository(
+        userRepositoryImpl: UserRepositoryImpl
+    ): UserRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindChatRepository(
+        chatRepositoryImpl: ChatRepositoryImpl
+    ): ChatRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindReviewRepository(
+        reviewRepositoryImpl: ReviewRepositoryImpl
+    ): ReviewRepository
 }
