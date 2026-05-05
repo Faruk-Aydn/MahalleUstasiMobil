@@ -1,9 +1,82 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Admin paneli okuma yetkisi (şimdilik geliştirme için açık)
-    match /{document=**} {
-      allow read, write: if request.auth != null;
+
+    // ─── USERS ────────────────────────────────────────────────────────────────
+    // Herkes profil okuyabilir (puanlar, yorumlar gösterilecek).
+    // Sadece kendi profilini güncelleyebilir.
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && request.auth.uid == userId;
+      allow delete: if false; // Hesap silme Cloud Function ile yapılacak
+    }
+
+    // ─── JOBS ─────────────────────────────────────────────────────────────────
+    // Herkes ilanları okuyabilir.
+    // Sadece ilan sahibi düzenleyebilir/silebilir.
+    match /jobs/{jobId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+                    && request.resource.data.postedByUserId == request.auth.uid;
+      allow update: if request.auth != null
+                    && resource.data.postedByUserId == request.auth.uid;
+      allow delete: if request.auth != null
+                    && resource.data.postedByUserId == request.auth.uid;
+    }
+
+    // ─── OFFERS ───────────────────────────────────────────────────────────────
+    // Teklifi veren veya ilanı açan okuyabilir.
+    // Teklif sadece teklif veren oluşturabilir.
+    // Status güncellemesi: sadece ilan sahibi (kabul/red işlemi için).
+    match /offers/{offerId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+                    && request.resource.data.offeredByUserId == request.auth.uid;
+      // Teklif veren kendi teklifini, ilan sahibi ise sadece status'u güncelleyebilir
+      allow update: if request.auth != null && (
+                      resource.data.offeredByUserId == request.auth.uid
+                      || onlyUpdatingStatus()
+                    );
+      allow delete: if false;
+    }
+
+    // ─── CHATS ────────────────────────────────────────────────────────────────
+    // Sadece chat'e dahil olanlar (alıcı/satıcı) erişebilir.
+    match /chats/{chatId} {
+      allow read, write: if request.auth != null
+                         && (resource == null
+                             || resource.data.buyerId == request.auth.uid
+                             || resource.data.sellerId == request.auth.uid);
+
+      // Mesajlar: sadece chat katılımcıları
+      match /messages/{messageId} {
+        allow read: if request.auth != null
+                    && (get(/databases/$(database)/documents/chats/$(chatId)).data.buyerId == request.auth.uid
+                        || get(/databases/$(database)/documents/chats/$(chatId)).data.sellerId == request.auth.uid);
+        allow create: if request.auth != null
+                      && request.resource.data.senderId == request.auth.uid
+                      && (get(/databases/$(database)/documents/chats/$(chatId)).data.buyerId == request.auth.uid
+                          || get(/databases/$(database)/documents/chats/$(chatId)).data.sellerId == request.auth.uid);
+        allow update, delete: if false;
+      }
+    }
+
+    // ─── REVIEWS ──────────────────────────────────────────────────────────────
+    // Herkes profil yorumlarını okuyabilir.
+    // Sadece reviewer kendi yorumunu oluşturabilir.
+    // Oluşturulduktan sonra düzenlenemez (güven için).
+    match /reviews/{reviewId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+                    && request.resource.data.reviewerId == request.auth.uid;
+      allow update, delete: if false;
     }
   }
 }
+
+// ─── YARDIMCI FONKSİYONLAR ────────────────────────────────────────────────────
+function onlyUpdatingStatus() {
+  return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
+}
+
