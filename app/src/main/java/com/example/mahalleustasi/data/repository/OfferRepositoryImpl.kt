@@ -21,7 +21,7 @@ class OfferRepositoryImpl @Inject constructor(
     override suspend fun createOffer(offer: Offer): Resource<Unit> {
         return try {
             val user = auth.currentUser ?: return Resource.Error("Oturum açmanız gerekiyor.")
-            
+
             val documentRef = firestore.collection("offers").document()
             val offerWithId = offer.copy(
                 id = documentRef.id,
@@ -29,7 +29,7 @@ class OfferRepositoryImpl @Inject constructor(
                 offeredByUserName = user.displayName ?: user.email?.substringBefore("@") ?: "Usta",
                 createdAt = System.currentTimeMillis()
             )
-            
+
             documentRef.set(offerWithId).await()
             Resource.Success(Unit)
         } catch (e: Exception) {
@@ -69,6 +69,55 @@ class OfferRepositoryImpl @Inject constructor(
         awaitClose { listener.remove() }
     }
 
+    override fun getOffersReceivedByUser(userId: String): Flow<Resource<List<Offer>>> = callbackFlow {
+        trySend(Resource.Loading)
+        // İlan sahibinin tekliflerini getirmek için jobId'leri önce çekmeliyiz.
+        // Firestore'da cross-collection sorgu olmadığı için
+        // jobs koleksiyonunda postedByUserId == userId olan ilanların jobId'lerini
+        // offers koleksiyonunda whereIn ile sorguluyoruz.
+        // NOT: whereIn max 30 element — yeterli MVP için.
+        val jobsListener = firestore.collection("jobs")
+            .whereEqualTo("postedByUserId", userId)
+            .addSnapshotListener { jobsSnapshot, jobsError ->
+                if (jobsError != null) {
+                    trySend(Resource.Error(jobsError.localizedMessage ?: "İlanlar alınamadı"))
+                    return@addSnapshotListener
+                }
+
+                val jobIds = jobsSnapshot?.documents?.mapNotNull { it.id } ?: emptyList()
+
+                if (jobIds.isEmpty()) {
+                    trySend(Resource.Success(emptyList()))
+                    return@addSnapshotListener
+                }
+
+                // Firestore whereIn max 30 item — MVP için yeterli
+                val chunks = jobIds.chunked(30)
+                val allOffers = mutableListOf<Offer>()
+                var pendingChunks = chunks.size
+
+                chunks.forEach { chunk ->
+                    firestore.collection("offers")
+                        .whereIn("jobId", chunk)
+                        .orderBy("createdAt", Query.Direction.DESCENDING)
+                        .get()
+                        .addOnSuccessListener { snapshot ->
+                            val offers = snapshot.documents.mapNotNull { it.toObject(Offer::class.java) }
+                            allOffers.addAll(offers)
+                            pendingChunks--
+                            if (pendingChunks == 0) {
+                                trySend(Resource.Success(allOffers.sortedByDescending { it.createdAt }))
+                            }
+                        }
+                        .addOnFailureListener {
+                            trySend(Resource.Error(it.localizedMessage ?: "Teklifler alınamadı"))
+                        }
+                }
+            }
+
+        awaitClose { jobsListener.remove() }
+    }
+
     override suspend fun updateOfferStatus(offerId: String, status: OfferStatus): Resource<Unit> {
         return try {
             firestore.collection("offers").document(offerId)
@@ -76,6 +125,33 @@ class OfferRepositoryImpl @Inject constructor(
             Resource.Success(Unit)
         } catch (e: Exception) {
             Resource.Error(e.localizedMessage ?: "Durum güncellenemedi.")
+        }
+    }
+
+    override suspend fun acceptOfferAndRejectOthers(
+        acceptedOfferId: String,
+        jobId: String
+    ): Resource<Unit> {
+        return try {
+            // İlandaki tüm pending teklifleri getir
+            val offersSnapshot = firestore.collection("offers")
+                .whereEqualTo("jobId", jobId)
+                .whereEqualTo("status", OfferStatus.PENDING)
+                .get()
+                .await()
+
+            // Batch yazma — atomik işlem garantisi
+            val batch = firestore.batch()
+
+            offersSnapshot.documents.forEach { doc ->
+                val newStatus = if (doc.id == acceptedOfferId) OfferStatus.ACCEPTED else OfferStatus.REJECTED
+                batch.update(doc.reference, "status", newStatus)
+            }
+
+            batch.commit().await()
+            Resource.Success(Unit)
+        } catch (e: Exception) {
+            Resource.Error(e.localizedMessage ?: "Teklif kabul edilemedi.")
         }
     }
 }
