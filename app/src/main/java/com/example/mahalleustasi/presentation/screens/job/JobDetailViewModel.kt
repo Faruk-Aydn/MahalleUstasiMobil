@@ -202,6 +202,35 @@ class JobDetailViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Usta → İş sahibini değerlendirsin (iş tamamlandıktan sonra)
+     */
+    fun navigateToReviewAsClient() {
+        val job = _uiState.value.job ?: return
+        if (job.status != JobStatus.COMPLETED) return
+
+        _uiState.update {
+            it.copy(
+                navigateToReview = ReviewNavArgs(
+                    jobId = jobId,
+                    revieweeId = job.postedByUserId,
+                    revieweeName = job.postedByUserName,
+                    role = "AS_CLIENT"
+                )
+            )
+        }
+    }
+
+    /**
+     * Teklifi kabul edilmiş olan usta mı bu?
+     */
+    fun isAcceptedWorker(): Boolean {
+        val currentUid = auth.currentUser?.uid ?: return false
+        return _uiState.value.offers.any {
+            it.status == OfferStatus.ACCEPTED && it.offeredByUserId == currentUid
+        }
+    }
+
     fun resetOfferSuccess() {
         _uiState.update { it.copy(offerSuccess = false) }
     }

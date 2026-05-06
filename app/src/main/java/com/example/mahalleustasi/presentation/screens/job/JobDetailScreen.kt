@@ -107,11 +107,13 @@ fun JobDetailScreen(
                         job = uiState.job!!,
                         offers = uiState.offers,
                         isOwner = uiState.isOwner,
+                        isAcceptedWorker = viewModel.isAcceptedWorker(),
                         isLoading = uiState.isLoading,
                         onOfferClick = { showOfferDialog = true },
                         onAcceptOffer = { viewModel.acceptOffer(it) },
                         onRejectOffer = { viewModel.rejectOffer(it.id) },
-                        onCompleteJob = { showCompleteDialog = true }
+                        onCompleteJob = { showCompleteDialog = true },
+                        onReviewAsWorker = { viewModel.navigateToReviewAsClient() }
                     )
                 }
             }
@@ -158,11 +160,13 @@ private fun JobDetailContent(
     job: Job,
     offers: List<Offer>,
     isOwner: Boolean,
+    isAcceptedWorker: Boolean,
     isLoading: Boolean,
     onOfferClick: () -> Unit,
     onAcceptOffer: (Offer) -> Unit,
     onRejectOffer: (Offer) -> Unit,
-    onCompleteJob: () -> Unit
+    onCompleteJob: () -> Unit,
+    onReviewAsWorker: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -354,19 +358,41 @@ private fun JobDetailContent(
                 }
             }
             job.status == JobStatus.COMPLETED -> {
-                // Tamamlanan ilan
-                Surface(
-                    color = Color.Gray.copy(alpha = 0.1f),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        "✅ Bu iş tamamlandı",
-                        modifier = Modifier.padding(16.dp),
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                        color = Color.Gray,
-                        fontWeight = FontWeight.Bold
-                    )
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    // Tamamlanan ilan bilgi kutusu
+                    Surface(
+                        color = Color(0xFF4CAF50).copy(alpha = 0.1f),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(Icons.Default.CheckCircle, null, tint = Color(0xFF4CAF50), modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                "İş Başarıyla Tamamlandı",
+                                color = Color(0xFF4CAF50),
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    // Usta iş sahibini değlendirsin
+                    if (isAcceptedWorker) {
+                        Button(
+                            onClick = onReviewAsWorker,
+                            modifier = Modifier.fillMaxWidth().height(52.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = BrandOrange80),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(Icons.Default.Star, null, tint = Color.White, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("İş Sahibini Değerlendir", color = Color.White, fontWeight = FontWeight.Bold)
+                        }
+                    }
                 }
             }
         }
