@@ -1,6 +1,7 @@
 package com.example.mahalleustasi.data.repository
 
 import com.example.mahalleustasi.core.util.Resource
+import com.example.mahalleustasi.domain.model.SavedAddress
 import com.example.mahalleustasi.domain.model.User
 import com.example.mahalleustasi.domain.repository.UserRepository
 import com.google.firebase.firestore.FirebaseFirestore
@@ -55,6 +56,17 @@ class UserRepositoryImpl @Inject constructor(
             Resource.Success(Unit)
         } catch (e: Exception) {
             Resource.Error(e.localizedMessage ?: "Kullanıcı oluşturulamadı")
+        }
+    }
+
+    override suspend fun addSavedAddress(userId: String, address: SavedAddress): Resource<Unit> {
+        return try {
+            usersCollection.document(userId)
+                .update("savedAddresses", com.google.firebase.firestore.FieldValue.arrayUnion(address))
+                .await()
+            Resource.Success(Unit)
+        } catch (e: Exception) {
+            Resource.Error(e.localizedMessage ?: "Adres kaydedilemedi")
         }
     }
 }

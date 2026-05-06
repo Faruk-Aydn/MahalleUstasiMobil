@@ -8,5 +8,14 @@ data class User(
     val rating: Float      = 0f,
     val reviewCount: Int   = 0,
     val completedJobsCount: Int = 0,
+    val savedAddresses: List<SavedAddress> = emptyList(),
     val createdAt: Long    = System.currentTimeMillis()
+)
+
+data class SavedAddress(
+    val id: String = "",
+    val title: String = "", // e.g. "Ev", "İş"
+    val addressText: String = "",
+    val lat: Double = 0.0,
+    val lng: Double = 0.0
 )
