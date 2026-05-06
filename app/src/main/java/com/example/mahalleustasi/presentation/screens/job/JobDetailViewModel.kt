@@ -265,6 +265,7 @@ class JobDetailViewModel @Inject constructor(
                             is Resource.Loading -> _uiState.update { it.copy(isAiLoading = true) }
                             is Resource.Success -> _uiState.update { it.copy(isAiLoading = false, aiAnalysis = aiResult.data) }
                             is Resource.Error -> _uiState.update { it.copy(isAiLoading = false) }
+                            else -> Unit
                         }
                     }
                 }
