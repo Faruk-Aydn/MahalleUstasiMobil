@@ -41,14 +41,13 @@ class OfferRepositoryImpl @Inject constructor(
         trySend(Resource.Loading)
         val listener = firestore.collection("offers")
             .whereEqualTo("jobId", jobId)
-            .orderBy("createdAt", Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     trySend(Resource.Error(error.localizedMessage ?: "Hata oluştu"))
                     return@addSnapshotListener
                 }
                 val offers = snapshot?.documents?.mapNotNull { it.toObject(Offer::class.java) } ?: emptyList()
-                trySend(Resource.Success(offers))
+                trySend(Resource.Success(offers.sortedByDescending { it.createdAt }))
             }
         awaitClose { listener.remove() }
     }
@@ -57,14 +56,13 @@ class OfferRepositoryImpl @Inject constructor(
         trySend(Resource.Loading)
         val listener = firestore.collection("offers")
             .whereEqualTo("offeredByUserId", userId)
-            .orderBy("createdAt", Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     trySend(Resource.Error(error.localizedMessage ?: "Hata oluştu"))
                     return@addSnapshotListener
                 }
                 val offers = snapshot?.documents?.mapNotNull { it.toObject(Offer::class.java) } ?: emptyList()
-                trySend(Resource.Success(offers))
+                trySend(Resource.Success(offers.sortedByDescending { it.createdAt }))
             }
         awaitClose { listener.remove() }
     }
@@ -99,7 +97,6 @@ class OfferRepositoryImpl @Inject constructor(
                 chunks.forEach { chunk ->
                     firestore.collection("offers")
                         .whereIn("jobId", chunk)
-                        .orderBy("createdAt", Query.Direction.DESCENDING)
                         .get()
                         .addOnSuccessListener { snapshot ->
                             val offers = snapshot.documents.mapNotNull { it.toObject(Offer::class.java) }
