@@ -1,6 +1,7 @@
 package com.example.mahalleustasi.presentation.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -20,11 +21,13 @@ import com.example.mahalleustasi.presentation.screens.review.ReviewScreen
 @Composable
 fun NavGraph(
     navController: NavHostController,
-    isLoggedIn: Boolean
+    isLoggedIn: Boolean,
+    modifier: Modifier = Modifier
 ) {
     NavHost(
         navController  = navController,
-        startDestination = if (isLoggedIn) Screen.Home.route else Screen.Login.route
+        startDestination = if (isLoggedIn) Screen.Home.route else Screen.Login.route,
+        modifier = modifier
     ) {
 
         // ── Auth ──────────────────────────────────────────────────────────────
@@ -54,7 +57,6 @@ fun NavGraph(
         composable(Screen.Home.route) {
             HomeScreen(
                 onNavigateToCreateJob = { navController.navigate(Screen.JobCreate.createRoute()) },
-                onNavigateToOffers    = { navController.navigate(Screen.Offers.route) },
                 onNavigateToProfile   = { userId -> navController.navigate(Screen.Profile.createRoute(userId)) },
                 onNavigateToJobDetail = { jobId -> navController.navigate(Screen.JobDetail.createRoute(jobId)) }
             )
