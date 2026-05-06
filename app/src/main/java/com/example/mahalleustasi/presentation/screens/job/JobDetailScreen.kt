@@ -109,6 +109,8 @@ fun JobDetailScreen(
                         isOwner = uiState.isOwner,
                         isAcceptedWorker = uiState.isAcceptedWorker,
                         isLoading = uiState.isLoading,
+                        aiAnalysis = uiState.aiAnalysis,
+                        isAiLoading = uiState.isAiLoading,
                         onOfferClick = { showOfferDialog = true },
                         onAcceptOffer = { viewModel.acceptOffer(it) },
                         onRejectOffer = { viewModel.rejectOffer(it.id) },
@@ -163,6 +165,8 @@ private fun JobDetailContent(
     isOwner: Boolean,
     isAcceptedWorker: Boolean,
     isLoading: Boolean,
+    aiAnalysis: com.example.mahalleustasi.domain.model.AiTrustAnalysis?,
+    isAiLoading: Boolean,
     onOfferClick: () -> Unit,
     onAcceptOffer: (Offer) -> Unit,
     onRejectOffer: (Offer) -> Unit,
@@ -271,6 +275,12 @@ private fun JobDetailContent(
         }
 
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+        // ── AI Güven Analizi ──────────────────────────────────────────────
+        if (!isOwner) {
+            AiTrustSection(analysis = aiAnalysis, isLoading = isAiLoading)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+        }
 
         // ── Açıklama ──────────────────────────────────────────────────────
         Text("Açıklama", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -593,3 +603,91 @@ fun OfferSubmissionDialog(
         }
     )
 }
+
+@Composable
+fun AiTrustSection(
+    analysis: com.example.mahalleustasi.domain.model.AiTrustAnalysis?,
+    isLoading: Boolean
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = BrandOrange80.copy(alpha = 0.05f)
+        ),
+        border = androidx.compose.foundation.BorderStroke(1.dp, BrandOrange80.copy(alpha = 0.2f))
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.AutoAwesome,
+                        contentDescription = null,
+                        tint = BrandOrange80,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        "AI Güven Analizi",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = BrandOrange80
+                    )
+                }
+
+                if (analysis != null && !isLoading) {
+                    Surface(
+                        color = when {
+                            analysis.score >= 80 -> Color(0xFF4CAF50)
+                            analysis.score >= 50 -> BrandOrange80
+                            else -> Color(0xFFF44336)
+                        },
+                        shape = CircleShape
+                    ) {
+                        Text(
+                            "%${analysis.score}",
+                            color = Color.White,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            if (isLoading) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = BrandOrange80)
+                    Spacer(Modifier.width(12.dp))
+                    Text("Yapay zeka yorumları inceliyor...", style = MaterialTheme.typography.bodyMedium)
+                }
+            } else if (analysis != null) {
+                Text(
+                    text = analysis.summary,
+                    style = MaterialTheme.typography.bodyMedium,
+                    lineHeight = 20.sp
+                )
+
+                if (analysis.strengths.isNotEmpty()) {
+                    Spacer(Modifier.height(8.dp))
+                    analysis.strengths.forEach { strength ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Check, null, tint = Color(0xFF4CAF50), modifier = Modifier.size(14.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text(strength, style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
+            } else {
+                Text("Analiz hazırlanıyor...", style = MaterialTheme.typography.bodySmall)
+            }
+        }
+    }
+}
+

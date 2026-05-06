@@ -4,11 +4,10 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.mahalleustasi.core.util.Resource
-import com.example.mahalleustasi.domain.model.Review
-import com.example.mahalleustasi.domain.model.ReviewRole
-import com.example.mahalleustasi.domain.model.User
+import com.example.mahalleustasi.domain.model.*
 import com.example.mahalleustasi.domain.repository.ReviewRepository
 import com.example.mahalleustasi.domain.repository.UserRepository
+import com.example.mahalleustasi.domain.usecase.ai.AnalyzeUserReviewsUseCase
 import com.example.mahalleustasi.domain.usecase.auth.GetCurrentUserUseCase
 import com.example.mahalleustasi.domain.usecase.auth.LogoutUseCase
 import com.google.firebase.auth.FirebaseAuth
@@ -21,6 +20,8 @@ data class ProfileUiState(
     val profileUser: User? = null,
     val workerReviews: List<Review> = emptyList(),  // Usta olarak aldığı yorumlar
     val clientReviews: List<Review> = emptyList(),  // Müşteri olarak aldığı yorumlar
+    val aiAnalysis: AiTrustAnalysis? = null,
+    val isAiLoading: Boolean = false,
     val isLoading: Boolean = false,
     val error: String? = null
 )
@@ -31,6 +32,7 @@ class ProfileViewModel @Inject constructor(
     private val logoutUseCase: LogoutUseCase,
     private val userRepository: UserRepository,
     private val reviewRepository: ReviewRepository,
+    private val analyzeUserReviewsUseCase: AnalyzeUserReviewsUseCase,
     private val auth: FirebaseAuth,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
@@ -82,8 +84,25 @@ class ProfileViewModel @Inject constructor(
         reviewRepository.getReviewsForUser(uid, ReviewRole.AS_CLIENT).onEach { result ->
             if (result is Resource.Success) {
                 _uiState.update { it.copy(clientReviews = result.data ?: emptyList()) }
+                // Tüm yorumlar yüklendiğinde AI analizini başlat (opsiyonel: sadece karşı profilse yapabiliriz)
+                if (!isOwnProfile) {
+                    val allReviews = _uiState.value.workerReviews + (result.data ?: emptyList())
+                    runAiAnalysis(allReviews)
+                }
             }
         }.launchIn(viewModelScope)
+    }
+
+    private fun runAiAnalysis(reviews: List<Review>) {
+        viewModelScope.launch {
+            analyzeUserReviewsUseCase(reviews).collect { result ->
+                when (result) {
+                    is Resource.Loading -> _uiState.update { it.copy(isAiLoading = true) }
+                    is Resource.Success -> _uiState.update { it.copy(isAiLoading = false, aiAnalysis = result.data) }
+                    is Resource.Error   -> _uiState.update { it.copy(isAiLoading = false) }
+                }
+            }
+        }
     }
 
     fun logout() {

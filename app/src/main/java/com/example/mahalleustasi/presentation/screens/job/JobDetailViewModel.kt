@@ -4,14 +4,12 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.mahalleustasi.core.util.Resource
-import com.example.mahalleustasi.domain.model.Chat
-import com.example.mahalleustasi.domain.model.Job
-import com.example.mahalleustasi.domain.model.JobStatus
-import com.example.mahalleustasi.domain.model.Offer
-import com.example.mahalleustasi.domain.model.OfferStatus
+import com.example.mahalleustasi.domain.model.*
 import com.example.mahalleustasi.domain.repository.ChatRepository
 import com.example.mahalleustasi.domain.repository.JobRepository
 import com.example.mahalleustasi.domain.repository.OfferRepository
+import com.example.mahalleustasi.domain.repository.ReviewRepository
+import com.example.mahalleustasi.domain.usecase.ai.AnalyzeUserReviewsUseCase
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -28,6 +26,8 @@ data class JobDetailUiState(
     val offerSuccess: Boolean = false,
     val navigateToChatId: String? = null,
     val navigateToReview: ReviewNavArgs? = null,
+    val aiAnalysis: AiTrustAnalysis? = null,
+    val isAiLoading: Boolean = false,
     val error: String? = null
 )
 
@@ -42,7 +42,9 @@ data class ReviewNavArgs(
 class JobDetailViewModel @Inject constructor(
     private val jobRepository: JobRepository,
     private val offerRepository: OfferRepository,
+    private val reviewRepository: ReviewRepository,
     private val chatRepository: ChatRepository,
+    private val analyzeUserReviewsUseCase: AnalyzeUserReviewsUseCase,
     private val auth: FirebaseAuth,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
@@ -89,9 +91,12 @@ class JobDetailViewModel @Inject constructor(
                         it.copy(
                             isLoading = false,
                             job = job,
-                            // Kullanıcı kendi ilanını mı görüyor?
                             isOwner = job?.postedByUserId == currentUserId
                         )
+                    }
+                    // İlan sahibi başkasıysa onun için AI analizi başlat
+                    if (job != null && job.postedByUserId != currentUserId) {
+                        loadAiAnalysis(job.postedByUserId)
                     }
                 }
                 is Resource.Error -> {
@@ -249,6 +254,22 @@ class JobDetailViewModel @Inject constructor(
      */
     fun isAcceptedWorker(): Boolean {
         return _uiState.value.isAcceptedWorker
+    }
+
+    private fun loadAiAnalysis(userId: String) {
+        viewModelScope.launch {
+            reviewRepository.getReviewsForUser(userId).collect { result ->
+                if (result is Resource.Success) {
+                    analyzeUserReviewsUseCase(result.data ?: emptyList()).collect { aiResult ->
+                        when (aiResult) {
+                            is Resource.Loading -> _uiState.update { it.copy(isAiLoading = true) }
+                            is Resource.Success -> _uiState.update { it.copy(isAiLoading = false, aiAnalysis = aiResult.data) }
+                            is Resource.Error -> _uiState.update { it.copy(isAiLoading = false) }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     fun resetOfferSuccess() {

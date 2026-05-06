@@ -69,4 +69,15 @@ class UserRepositoryImpl @Inject constructor(
             Resource.Error(e.localizedMessage ?: "Adres kaydedilemedi")
         }
     }
+
+    override suspend fun updateFcmToken(userId: String, token: String): Resource<Unit> {
+        return try {
+            usersCollection.document(userId)
+                .update("fcmToken", token)
+                .await()
+            Resource.Success(Unit)
+        } catch (e: Exception) {
+            Resource.Error(e.localizedMessage ?: "FCM Token güncellenemedi")
+        }
+    }
 }

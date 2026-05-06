@@ -9,10 +9,12 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import com.example.mahalleustasi.domain.model.Job
 import com.example.mahalleustasi.domain.repository.JobRepository
+import com.example.mahalleustasi.domain.repository.UserRepository
 import com.example.mahalleustasi.domain.location.LocationTracker
 import com.example.mahalleustasi.core.util.Resource
 import com.google.android.gms.maps.model.LatLng
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.messaging.FirebaseMessaging
 import javax.inject.Inject
 
 data class HomeUiState(
@@ -25,6 +27,7 @@ data class HomeUiState(
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val jobRepository: JobRepository,
+    private val userRepository: UserRepository,
     private val locationTracker: LocationTracker,
     private val auth: FirebaseAuth
 ) : ViewModel() {
@@ -36,6 +39,20 @@ class HomeViewModel @Inject constructor(
 
     init {
         loadRealJobs()
+        updateFcmToken()
+    }
+
+    private fun updateFcmToken() {
+        val userId = auth.currentUser?.uid ?: return
+        FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+            if (!task.isSuccessful) {
+                return@addOnCompleteListener
+            }
+            val token = task.result
+            viewModelScope.launch {
+                userRepository.updateFcmToken(userId, token)
+            }
+        }
     }
 
     fun fetchUserLocation() {
