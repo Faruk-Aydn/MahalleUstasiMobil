@@ -9,25 +9,44 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import com.example.mahalleustasi.domain.model.Job
 import com.example.mahalleustasi.domain.repository.JobRepository
+import com.example.mahalleustasi.domain.location.LocationTracker
 import com.example.mahalleustasi.core.util.Resource
+import com.google.android.gms.maps.model.LatLng
+import com.google.firebase.auth.FirebaseAuth
 import javax.inject.Inject
 
 data class HomeUiState(
     val jobs: List<Job>    = emptyList(),
+    val userLocation: LatLng? = null,
     val isLoading: Boolean = false,
     val error: String?     = null
 )
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val jobRepository: JobRepository
+    private val jobRepository: JobRepository,
+    private val locationTracker: LocationTracker,
+    private val auth: FirebaseAuth
 ) : ViewModel() {
+
+    val currentUserId: String get() = auth.currentUser?.uid ?: ""
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState = _uiState.asStateFlow()
 
     init {
         loadRealJobs()
+    }
+
+    fun fetchUserLocation() {
+        if (_uiState.value.userLocation != null) return // Zaten alındıysa tekrar alma
+        
+        viewModelScope.launch {
+            val location = locationTracker.getCurrentLocation()
+            if (location != null) {
+                _uiState.update { it.copy(userLocation = LatLng(location.latitude, location.longitude)) }
+            }
+        }
     }
 
     private fun loadRealJobs() {
