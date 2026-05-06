@@ -24,6 +24,7 @@ data class JobDetailUiState(
     val isLoading: Boolean = false,
     val isOfferLoading: Boolean = false,
     val isOwner: Boolean = false,
+    val isAcceptedWorker: Boolean = false,
     val offerSuccess: Boolean = false,
     val navigateToChatId: String? = null,
     val navigateToReview: ReviewNavArgs? = null,
@@ -63,7 +64,9 @@ class JobDetailViewModel @Inject constructor(
         offerRepository.getOffersByJobId(jobId).onEach { result ->
             when (result) {
                 is Resource.Success -> {
-                    _uiState.update { it.copy(offers = result.data ?: emptyList()) }
+                    val offers = result.data ?: emptyList()
+                    val acceptedWorker = offers.any { it.status == OfferStatus.ACCEPTED && it.offeredByUserId == currentUserId }
+                    _uiState.update { it.copy(offers = offers, isAcceptedWorker = acceptedWorker) }
                 }
                 else -> Unit
             }
@@ -187,16 +190,30 @@ class JobDetailViewModel @Inject constructor(
                 return@launch
             }
 
-            // İlan sahibi → Ustayı değerlendirsin
+            val isOwner = job.postedByUserId == currentUserId
+            
+            val navArgs = if (isOwner) {
+                // İlan sahibi -> Ustayı değerlendirsin
+                ReviewNavArgs(
+                    jobId = jobId,
+                    revieweeId = acceptedOffer.offeredByUserId,
+                    revieweeName = acceptedOffer.offeredByUserName,
+                    role = "AS_WORKER"
+                )
+            } else {
+                // Usta -> İş sahibini değerlendirsin
+                ReviewNavArgs(
+                    jobId = jobId,
+                    revieweeId = job.postedByUserId,
+                    revieweeName = job.postedByUserName,
+                    role = "AS_CLIENT"
+                )
+            }
+
             _uiState.update {
                 it.copy(
                     isLoading = false,
-                    navigateToReview = ReviewNavArgs(
-                        jobId = jobId,
-                        revieweeId = acceptedOffer.offeredByUserId,
-                        revieweeName = acceptedOffer.offeredByUserName,
-                        role = "AS_WORKER"
-                    )
+                    navigateToReview = navArgs
                 )
             }
         }
@@ -221,14 +238,17 @@ class JobDetailViewModel @Inject constructor(
         }
     }
 
+    fun openChat() {
+        val acceptedOffer = _uiState.value.offers.find { it.status == OfferStatus.ACCEPTED } ?: return
+        val chatId = "${jobId}_${acceptedOffer.id}"
+        _uiState.update { it.copy(navigateToChatId = chatId) }
+    }
+
     /**
      * Teklifi kabul edilmiş olan usta mı bu?
      */
     fun isAcceptedWorker(): Boolean {
-        val currentUid = auth.currentUser?.uid ?: return false
-        return _uiState.value.offers.any {
-            it.status == OfferStatus.ACCEPTED && it.offeredByUserId == currentUid
-        }
+        return _uiState.value.isAcceptedWorker
     }
 
     fun resetOfferSuccess() {

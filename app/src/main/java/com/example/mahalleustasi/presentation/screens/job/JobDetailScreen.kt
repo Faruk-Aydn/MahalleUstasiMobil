@@ -107,12 +107,13 @@ fun JobDetailScreen(
                         job = uiState.job!!,
                         offers = uiState.offers,
                         isOwner = uiState.isOwner,
-                        isAcceptedWorker = viewModel.isAcceptedWorker(),
+                        isAcceptedWorker = uiState.isAcceptedWorker,
                         isLoading = uiState.isLoading,
                         onOfferClick = { showOfferDialog = true },
                         onAcceptOffer = { viewModel.acceptOffer(it) },
                         onRejectOffer = { viewModel.rejectOffer(it.id) },
                         onCompleteJob = { showCompleteDialog = true },
+                        onOpenChat = { viewModel.openChat() },
                         onReviewAsWorker = { viewModel.navigateToReviewAsClient() }
                     )
                 }
@@ -166,6 +167,7 @@ private fun JobDetailContent(
     onAcceptOffer: (Offer) -> Unit,
     onRejectOffer: (Offer) -> Unit,
     onCompleteJob: () -> Unit,
+    onOpenChat: () -> Unit,
     onReviewAsWorker: () -> Unit
 ) {
     Column(
@@ -326,28 +328,42 @@ private fun JobDetailContent(
 
         Spacer(Modifier.height(24.dp))
 
-        // ── Alt Buton ────────────────────────────────────────────────────
+        // ── Alt Butonlar (Dinamik) ─────────────────────────────────────────
         when {
-            isOwner && job.status == JobStatus.IN_PROGRESS -> {
-                // İş devam ediyor → Tamamla butonu
-                Button(
-                    onClick = onCompleteJob,
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
-                    shape = RoundedCornerShape(12.dp),
-                    enabled = !isLoading
-                ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
-                    } else {
-                        Icon(Icons.Default.CheckCircle, null, tint = Color.White)
+            (isOwner || isAcceptedWorker) && job.status == JobStatus.IN_PROGRESS -> {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    // Mesajlaşma Butonu
+                    Button(
+                        onClick = onOpenChat,
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Default.Chat, null, tint = Color.White)
                         Spacer(Modifier.width(8.dp))
-                        Text("İşi Tamamla", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text("Sohbete Git", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+
+                    // İş Tamamla Butonu (Artık her iki taraf da bitirebilir)
+                    Button(
+                        onClick = onCompleteJob,
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
+                        shape = RoundedCornerShape(12.dp),
+                        enabled = !isLoading
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                        } else {
+                            Icon(Icons.Default.CheckCircle, null, tint = Color.White)
+                            Spacer(Modifier.width(8.dp))
+                            Text("İşi Tamamla", color = Color.White, fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }
             !isOwner && job.status == JobStatus.OPEN -> {
-                // Teklif Ver butonu (ilan sahibi değil ve ilan açık)
+                // Teklif Ver butonu
                 Button(
                     onClick = onOfferClick,
                     modifier = Modifier.fillMaxWidth().height(56.dp),
@@ -380,7 +396,20 @@ private fun JobDetailContent(
                         }
                     }
 
-                    // Usta iş sahibini değlendirsin
+                    // Mesajlaşma Butonu (Tamamlansa bile geçmişe bakabilsinler)
+                    if (isOwner || isAcceptedWorker) {
+                        OutlinedButton(
+                            onClick = onOpenChat,
+                            modifier = Modifier.fillMaxWidth().height(52.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(Icons.Default.Chat, null)
+                            Spacer(Modifier.width(8.dp))
+                            Text("Geçmiş Sohbeti Gör", fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    // Değerlendirme Butonu
                     if (isAcceptedWorker) {
                         Button(
                             onClick = onReviewAsWorker,
