@@ -19,6 +19,11 @@ animationCoreLint      = "1.10.6"
 camerax                = "1.4.1"
 generativeai           = "0.9.0"
 
+# Maps & Location
+mapsCompose            = "6.1.0"
+playServicesMaps       = "19.0.0"
+playServicesLocation   = "21.3.0"
+
 [libraries]
 # AndroidX Core
 androidx-core-ktx             = { group = "androidx.core",             name = "core-ktx",              version.ref = "coreKtx"             }
@@ -70,6 +75,11 @@ camerax-view                  = { group = "androidx.camera",           name = "c
 
 # Google Generative AI (Gemini)
 generativeai                  = { group = "com.google.ai.client.generativeai", name = "generativeai",  version.ref = "generativeai"        }
+
+# Maps & Location
+maps-compose                  = { group = "com.google.maps.android",   name = "maps-compose",          version.ref = "mapsCompose"         }
+play-services-maps            = { group = "com.google.android.gms",    name = "play-services-maps",    version.ref = "playServicesMaps"    }
+play-services-location        = { group = "com.google.android.gms",    name = "play-services-location",version.ref = "playServicesLocation"}
 
 # Testing
 junit                         = { group = "junit",                     name = "junit",                 version.ref = "junit"               }
