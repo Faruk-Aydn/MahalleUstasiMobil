@@ -31,6 +31,8 @@ import com.example.mahalleustasi.domain.model.OfferStatus
 import com.example.mahalleustasi.ui.theme.BrandOrange80
 import java.text.SimpleDateFormat
 import java.util.*
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -183,6 +185,19 @@ private fun JobDetailContent(
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // ── Fotoğraf ──────────────────────────────────────────────────────
+        if (job.photoUrls.isNotEmpty()) {
+            AsyncImage(
+                model = job.photoUrls.first(),
+                contentDescription = "İlan Fotoğrafı",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(250.dp)
+                    .clip(RoundedCornerShape(16.dp)),
+                contentScale = ContentScale.Crop
+            )
+        }
+
         // ── Kategori Chip ──────────────────────────────────────────────────
         Surface(
             color = BrandOrange80.copy(alpha = 0.1f),
