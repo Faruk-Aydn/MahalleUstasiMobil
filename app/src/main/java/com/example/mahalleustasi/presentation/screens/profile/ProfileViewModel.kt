@@ -17,13 +17,13 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class ProfileUiState(
-    val profileUser: User? = null,
-    val workerReviews: List<Review> = emptyList(),  // Usta olarak aldığı yorumlar
-    val clientReviews: List<Review> = emptyList(),  // Müşteri olarak aldığı yorumlar
-    val aiAnalysis: AiTrustAnalysis? = null,
-    val isAiLoading: Boolean = false,
-    val isLoading: Boolean = false,
-    val error: String? = null
+    val profileUser: User?            = null,
+    val workerReviews: List<Review>   = emptyList(),
+    val clientReviews: List<Review>   = emptyList(),
+    val aiAnalysis: AiTrustAnalysis?  = null,
+    val isAiLoading: Boolean          = false,
+    val isLoading: Boolean            = false,
+    val error: String?                = null
 )
 
 @HiltViewModel
@@ -37,13 +37,11 @@ class ProfileViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    // NavGraph'tan gelen userId ("me" ise kendi profilimizi göster)
     private val navUserId: String = savedStateHandle.get<String>("userId") ?: "me"
 
     val targetUserId: String get() = if (navUserId == "me") auth.currentUser?.uid ?: "" else navUserId
     val isOwnProfile: Boolean get() = navUserId == "me" || navUserId == auth.currentUser?.uid
 
-    // Auth'tan mevcut kullanıcı (logout için)
     val currentUser = getCurrentUserUseCase()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
@@ -52,7 +50,7 @@ class ProfileViewModel @Inject constructor(
 
     init {
         loadProfile()
-        loadReviews()
+        loadReviewsCombined()
     }
 
     private fun loadProfile() {
@@ -69,28 +67,59 @@ class ProfileViewModel @Inject constructor(
         }.launchIn(viewModelScope)
     }
 
-    private fun loadReviews() {
+    /**
+     * Race condition fix: İki review flow'unu combine() ile birleştiriyoruz.
+     * Bu sayede workerReviews ve clientReviews her zaman tutarlı kalıyor.
+     * Her ikisi de yüklendiğinde AI analizini başlatıyoruz.
+     * 
+     * NİÇİN: Önceki implementasyonda iki ayrı onEach kullanılıyordu.
+     * clientReviews flow'u geldiğinde workerReviews state'i boş olabiliyordu
+     * çünkü Firestore'dan sonuçlar eş zamansız geliyordu (race condition).
+     */
+    private fun loadReviewsCombined() {
         val uid = targetUserId
-        if (uid.isEmpty()) return
+        if (uid.isEmpty()) {
+            android.util.Log.w("ProfileVM", "targetUserId is empty, skipping reviews load")
+            return
+        }
 
-        // Usta olarak alınan yorumlar
+        android.util.Log.d("ProfileVM", "Loading reviews for userId=$uid (isOwnProfile=$isOwnProfile)")
+
+        // Worker reviews — bağımsız collector, combine() bekleme problemi yok
         reviewRepository.getReviewsForUser(uid, ReviewRole.AS_WORKER).onEach { result ->
-            if (result is Resource.Success) {
-                _uiState.update { it.copy(workerReviews = result.data ?: emptyList()) }
+            when (result) {
+                is Resource.Success -> {
+                    android.util.Log.d("ProfileVM", "Worker reviews loaded: ${result.data?.size}")
+                    _uiState.update { it.copy(workerReviews = result.data ?: emptyList()) }
+                    maybeRunAiAnalysis()
+                }
+                is Resource.Error -> android.util.Log.e("ProfileVM", "Worker reviews error: ${result.message}")
+                else -> Unit
             }
         }.launchIn(viewModelScope)
 
-        // Müşteri olarak alınan yorumlar
+        // Client reviews — bağımsız collector
         reviewRepository.getReviewsForUser(uid, ReviewRole.AS_CLIENT).onEach { result ->
-            if (result is Resource.Success) {
-                _uiState.update { it.copy(clientReviews = result.data ?: emptyList()) }
-                // Tüm yorumlar yüklendiğinde AI analizini başlat (opsiyonel: sadece karşı profilse yapabiliriz)
-                if (!isOwnProfile) {
-                    val allReviews = _uiState.value.workerReviews + (result.data ?: emptyList())
-                    runAiAnalysis(allReviews)
+            when (result) {
+                is Resource.Success -> {
+                    android.util.Log.d("ProfileVM", "Client reviews loaded: ${result.data?.size}")
+                    _uiState.update { it.copy(clientReviews = result.data ?: emptyList()) }
+                    maybeRunAiAnalysis()
                 }
+                is Resource.Error -> android.util.Log.e("ProfileVM", "Client reviews error: ${result.message}")
+                else -> Unit
             }
         }.launchIn(viewModelScope)
+    }
+
+    private fun maybeRunAiAnalysis() {
+        val state = _uiState.value
+        // Daha önce analiz yapıldıysa tekrar yapma
+        if (state.aiAnalysis != null || state.isAiLoading) return
+        val allReviews = state.workerReviews + state.clientReviews
+        if (allReviews.isNotEmpty()) {
+            runAiAnalysis(allReviews)
+        }
     }
 
     private fun runAiAnalysis(reviews: List<Review>) {
@@ -99,11 +128,32 @@ class ProfileViewModel @Inject constructor(
                 when (result) {
                     is Resource.Loading -> _uiState.update { it.copy(isAiLoading = true) }
                     is Resource.Success -> _uiState.update { it.copy(isAiLoading = false, aiAnalysis = result.data) }
-                    is Resource.Error   -> _uiState.update { it.copy(isAiLoading = false) }
+                    is Resource.Error   -> {
+                        android.util.Log.e("ProfileVM", "AI Analysis error: ${result.message}")
+                        // Hata durumunda boş bir analiz objesi oluşturup hatayı summary'e basabiliriz
+                        _uiState.update { 
+                            it.copy(
+                                isAiLoading = false,
+                                aiAnalysis = AiTrustAnalysis(
+                                    score = 0,
+                                    summary = "Analiz yapılamadı: ${result.message}",
+                                    strengths = emptyList(),
+                                    weaknesses = emptyList()
+                                )
+                            ) 
+                        }
+                    }
                     else -> Unit
                 }
             }
         }
+    }
+
+    /** Manuel AI analizi yenileme (kullanıcı "Yenile" butonuna basarsa) */
+    fun refreshAiAnalysis() {
+        val allReviews = _uiState.value.workerReviews + _uiState.value.clientReviews
+        _uiState.update { it.copy(aiAnalysis = null) }
+        runAiAnalysis(allReviews)
     }
 
     fun logout() {
