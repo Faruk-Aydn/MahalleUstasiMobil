@@ -28,6 +28,12 @@ import com.example.mahalleustasi.domain.model.RentalCategory
 import com.example.mahalleustasi.ui.theme.BrandOrange80
 import com.example.mahalleustasi.ui.theme.ForestGreen20
 import com.example.mahalleustasi.ui.theme.ForestGreen40
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // RENTAL LIST SCREEN
@@ -173,66 +179,80 @@ private fun RentalCard(rental: Rental, onClick: () -> Unit, modifier: Modifier =
         shape     = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier              = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment     = Alignment.CenterVertically
-            ) {
-                // Kategori chip
-                Surface(
-                    color = Color(0xFF9C27B0).copy(alpha = 0.12f),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text(
-                        "${rental.category.emoji} ${rental.category.displayName}",
-                        modifier   = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        style      = MaterialTheme.typography.labelSmall,
-                        color      = Color(0xFF7B1FA2),
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-                // Müsaitlik
-                Surface(
-                    color = if (rental.isAvailable) Color(0xFF4CAF50).copy(0.12f) else Color.Gray.copy(0.12f),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text(
-                        if (rental.isAvailable) "✓ Müsait" else "✗ Dolu",
-                        modifier   = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        style      = MaterialTheme.typography.labelSmall,
-                        color      = if (rental.isAvailable) Color(0xFF4CAF50) else Color.Gray,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (rental.photoUrls.isNotEmpty()) {
+                AsyncImage(
+                    model = rental.photoUrls.first(),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clip(RoundedCornerShape(12.dp)),
+                    contentScale = ContentScale.Crop
+                )
+                Spacer(Modifier.width(16.dp))
             }
+            
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    modifier              = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment     = Alignment.CenterVertically
+                ) {
+                    // Kategori chip
+                    Surface(
+                        color = Color(0xFF9C27B0).copy(alpha = 0.12f),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            "${rental.category.emoji} ${rental.category.displayName}",
+                            modifier   = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            style      = MaterialTheme.typography.labelSmall,
+                            color      = Color(0xFF7B1FA2),
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    // Müsaitlik
+                    Surface(
+                        color = if (rental.isAvailable) Color(0xFF4CAF50).copy(0.12f) else Color.Gray.copy(0.12f),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            if (rental.isAvailable) "✓ Müsait" else "✗ Dolu",
+                            modifier   = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            style      = MaterialTheme.typography.labelSmall,
+                            color      = if (rental.isAvailable) Color(0xFF4CAF50) else Color.Gray,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
 
-            Spacer(Modifier.height(10.dp))
-            Text(rental.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
-                maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Spacer(Modifier.height(4.dp))
-            Text(rental.description, style = MaterialTheme.typography.bodySmall, color = Color.Gray,
-                maxLines = 2, overflow = TextOverflow.Ellipsis)
-            Spacer(Modifier.height(12.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-            Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(10.dp))
+                Text(rental.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Spacer(Modifier.height(4.dp))
+                Text(rental.description, style = MaterialTheme.typography.bodySmall, color = Color.Gray,
+                    maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Spacer(Modifier.height(12.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                Spacer(Modifier.height(10.dp))
 
-            Row(
-                modifier              = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment     = Alignment.CenterVertically
-            ) {
-                Text("👤 ${rental.ownerName}", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        "${rental.dailyPrice.toLong()} ₺/gün",
-                        color      = BrandOrange80,
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize   = 18.sp
-                    )
-                    if (rental.depositAmount > 0) {
-                        Text("Depozito: ${rental.depositAmount.toLong()} ₺",
-                            style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                Row(
+                    modifier              = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment     = Alignment.CenterVertically
+                ) {
+                    Text("👤 ${rental.ownerName}", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            "${rental.dailyPrice.toLong()} ₺/gün",
+                            color      = BrandOrange80,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize   = 18.sp
+                        )
+                        if (rental.depositAmount > 0) {
+                            Text("Depozito: ${rental.depositAmount.toLong()} ₺",
+                                style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                        }
                     }
                 }
             }
@@ -279,6 +299,21 @@ fun RentalDetailScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                // Fotoğraf
+                if (rental.photoUrls.isNotEmpty()) {
+                    item {
+                        AsyncImage(
+                            model = rental.photoUrls.first(),
+                            contentDescription = "Eşya Fotoğrafı",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(250.dp)
+                                .clip(RoundedCornerShape(16.dp)),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                }
+
                 // Kategori + Durum
                 item {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -435,6 +470,13 @@ fun RentalCreateScreen(
         if (uiState.isSuccess) onNavigateBack()
     }
 
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(),
+        onResult = { uri ->
+            uri?.let { viewModel.onImageSelected(it.toString()) }
+        }
+    )
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -489,6 +531,64 @@ fun RentalCreateScreen(
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 lineHeight = 16.sp
+                            )
+                        }
+                    }
+                }
+            }
+
+            // ── Image Preview and Picker ──────────────────────────────────
+            item {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
+                        .clickable { imagePickerLauncher.launch("image/*") },
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surface
+                ) {
+                    if (uiState.imageUri != null) {
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            AsyncImage(
+                                model = uiState.imageUri,
+                                contentDescription = "Seçilen Fotoğraf",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                            IconButton(
+                                onClick = { viewModel.onImageSelected(null) },
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(8.dp)
+                                    .background(Color.Black.copy(alpha = 0.5f), androidx.compose.foundation.shape.CircleShape)
+                                    .size(32.dp)
+                            ) {
+                                Icon(Icons.Default.Close, null, tint = Color.White, modifier = Modifier.size(16.dp))
+                            }
+                        }
+                    } else {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(
+                                Icons.Default.PhotoLibrary,
+                                contentDescription = null,
+                                tint = Color(0xFF7B1FA2),
+                                modifier = Modifier.size(48.dp)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                "Fotoğraf Ekle",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color(0xFF7B1FA2)
+                            )
+                            Text(
+                                "(Galeriden Seç)",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
