@@ -25,10 +25,14 @@ class CameraViewModel @Inject constructor(
     private val _analysisState = MutableStateFlow<Resource<AiAnalysisResult>>(Resource.Idle)
     val analysisState: StateFlow<Resource<AiAnalysisResult>> = _analysisState.asStateFlow()
 
-    fun analyzeImage(bitmap: Bitmap) {
+    fun analyzeImage(bitmap: Bitmap, imageUri: String) {
         viewModelScope.launch {
             analyzeImageUseCase(bitmap, mode).collect { result ->
-                _analysisState.value = result
+                if (result is Resource.Success) {
+                    _analysisState.value = Resource.Success(result.data.copy(imageUri = imageUri))
+                } else {
+                    _analysisState.value = result
+                }
             }
         }
     }

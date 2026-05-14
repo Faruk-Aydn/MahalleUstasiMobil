@@ -146,16 +146,16 @@ fun CameraScreen(
 
                     // Capture Button
                     IconButton(
-                        onClick = {
-                            takePhoto(
-                                imageCapture = imageCapture,
-                                context = context,
-                                onPhotoCaptured = { bitmap ->
-                                    viewModel.analyzeImage(bitmap)
+                                onClick = {
+                                    takePhoto(
+                                        imageCapture = imageCapture,
+                                        context = context,
+                                        onPhotoCaptured = { bitmap, uri ->
+                                            viewModel.analyzeImage(bitmap, uri.toString())
+                                        },
+                                        onError = { /* Hata yönetimi */ }
+                                    )
                                 },
-                                onError = { /* Hata yönetimi */ }
-                            )
-                        },
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
                             .padding(bottom = 48.dp)
@@ -182,7 +182,7 @@ fun CameraScreen(
 private fun takePhoto(
     imageCapture: ImageCapture,
     context: android.content.Context,
-    onPhotoCaptured: (Bitmap) -> Unit,
+    onPhotoCaptured: (Bitmap, android.net.Uri) -> Unit,
     onError: (ImageCaptureException) -> Unit
 ) {
     imageCapture.takePicture(
@@ -191,7 +191,15 @@ private fun takePhoto(
             override fun onCaptureSuccess(image: ImageProxy) {
                 super.onCaptureSuccess(image)
                 val bitmap = imageProxyToBitmap(image)
-                onPhotoCaptured(bitmap)
+                
+                // Save bitmap to cache
+                val file = java.io.File(context.cacheDir, "captured_image_${System.currentTimeMillis()}.jpg")
+                java.io.FileOutputStream(file).use { out ->
+                    bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, out)
+                }
+                val uri = android.net.Uri.fromFile(file)
+                
+                onPhotoCaptured(bitmap, uri)
                 image.close()
             }
 
