@@ -14,6 +14,8 @@ import com.example.mahalleustasi.data.repository.ReviewRepositoryImpl
 import com.example.mahalleustasi.domain.repository.ReviewRepository
 import com.example.mahalleustasi.data.repository.UserRepositoryImpl
 import com.example.mahalleustasi.domain.repository.UserRepository
+import com.example.mahalleustasi.data.repository.StorageRepositoryImpl
+import com.example.mahalleustasi.domain.repository.StorageRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -44,4 +46,7 @@ abstract class RepositoryModule {
 
     @Binds @Singleton
     abstract fun bindRentalRepository(impl: RentalRepositoryImpl): RentalRepository
+
+    @Binds @Singleton
+    abstract fun bindStorageRepository(impl: StorageRepositoryImpl): StorageRepository
 }
