@@ -10,6 +10,7 @@ import com.example.mahalleustasi.domain.model.JobLocation
 import com.example.mahalleustasi.domain.repository.JobRepository
 import com.example.mahalleustasi.domain.location.LocationTracker
 import com.example.mahalleustasi.domain.repository.UserRepository
+import com.example.mahalleustasi.domain.repository.StorageRepository
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,22 +30,25 @@ data class JobCreateUiState(
     val useCurrentLocation: Boolean = true, // Varsayılan olarak mevcut konum
     val isLoading: Boolean = false,
     val success: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val imageUri: String? = null
 )
 
 @HiltViewModel
 class JobCreateViewModel @Inject constructor(
     private val jobRepository: JobRepository,
     private val userRepository: UserRepository,
+    private val storageRepository: StorageRepository,
     private val locationTracker: LocationTracker,
     private val auth: FirebaseAuth,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    private val titleArg = savedStateHandle.get<String>("title") ?: ""
-    private val descArg = savedStateHandle.get<String>("desc") ?: ""
-    private val budgetArg = savedStateHandle.get<String>("budget") ?: ""
-    private val catArg = savedStateHandle.get<String>("cat") ?: ""
+    private val titleArg = savedStateHandle.get<String>("title")?.takeIf { !it.startsWith("{") } ?: ""
+    private val descArg = savedStateHandle.get<String>("desc")?.takeIf { !it.startsWith("{") } ?: ""
+    private val budgetArg = savedStateHandle.get<String>("budget")?.takeIf { !it.startsWith("{") } ?: ""
+    private val catArg = savedStateHandle.get<String>("cat")?.takeIf { !it.startsWith("{") } ?: ""
+    private val imageUriArg = savedStateHandle.get<String>("imageUri")?.takeIf { !it.startsWith("{") } ?: ""
 
     private val initialCategory = try {
         if (catArg.isNotBlank()) JobCategory.valueOf(catArg) else JobCategory.OTHER
@@ -56,7 +60,8 @@ class JobCreateViewModel @Inject constructor(
         title = titleArg,
         description = descArg,
         budget = budgetArg,
-        category = initialCategory
+        category = initialCategory,
+        imageUri = if (imageUriArg.isNotBlank() && !imageUriArg.startsWith("{")) imageUriArg else null
     ))
     val uiState = _uiState.asStateFlow()
 
@@ -97,6 +102,10 @@ class JobCreateViewModel @Inject constructor(
 
     fun onUseCurrentLocationToggle(use: Boolean) {
         _uiState.update { it.copy(useCurrentLocation = use, address = if (use) "" else it.address) }
+    }
+
+    fun onImageSelected(uri: String?) {
+        _uiState.update { it.copy(imageUri = uri) }
     }
 
     fun saveNewAddress(title: String, addressText: String) {
@@ -183,6 +192,23 @@ class JobCreateViewModel @Inject constructor(
                 lng = location?.longitude ?: 0.0
             }
             
+            // Eğer bir görsel seçilmişse önce onu yükle
+            var uploadedPhotoUrl: String? = null
+            if (!state.imageUri.isNullOrBlank() && !state.imageUri.startsWith("http")) {
+                val uploadResult = storageRepository.uploadImage(
+                    uri = android.net.Uri.parse(state.imageUri),
+                    path = "jobs"
+                )
+                if (uploadResult is Resource.Success) {
+                    uploadedPhotoUrl = uploadResult.data
+                } else if (uploadResult is Resource.Error) {
+                    _uiState.update { it.copy(isLoading = false, error = "Görsel yüklenemedi: ${uploadResult.message}") }
+                    return@launch
+                }
+            } else if (!state.imageUri.isNullOrBlank() && state.imageUri.startsWith("http")) {
+                uploadedPhotoUrl = state.imageUri
+            }
+            
             val newJob = Job(
                 title = state.title,
                 description = state.description,
@@ -192,7 +218,8 @@ class JobCreateViewModel @Inject constructor(
                     lat = lat,
                     lng = lng
                 ),
-                budget = state.budget.takeIf { it.isNotBlank() }
+                budget = state.budget.takeIf { it.isNotBlank() },
+                photoUrls = if (uploadedPhotoUrl != null) listOf(uploadedPhotoUrl) else emptyList()
             )
 
             when (val result = jobRepository.createJob(newJob)) {
