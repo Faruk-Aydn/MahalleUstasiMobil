@@ -77,7 +77,7 @@ fun NavGraph(
         composable(Screen.Rentals.route) {
             RentalListScreen(
                 onNavigateToDetail = { rentalId -> navController.navigate(Screen.RentalDetail.createRoute(rentalId)) },
-                onNavigateToCreate = { navController.navigate(Screen.RentalCreate.route) }
+                onNavigateToCreate = { navController.navigate(Screen.RentalCreate.createRoute()) }
             )
         }
 
@@ -94,7 +94,8 @@ fun NavGraph(
                 navArgument("title") { type = NavType.StringType; defaultValue = "" },
                 navArgument("desc")  { type = NavType.StringType; defaultValue = "" },
                 navArgument("cat")   { type = NavType.StringType; defaultValue = "" },
-                navArgument("price") { type = NavType.StringType; defaultValue = "" }
+                navArgument("price") { type = NavType.StringType; defaultValue = "" },
+                navArgument("imageUri") { type = NavType.StringType; defaultValue = "" }
             )
         ) {
             RentalCreateScreen(
@@ -116,20 +117,22 @@ fun NavGraph(
                             title = result.title,
                             desc  = result.description,
                             cat   = result.category,
-                            price = result.estimatedCost
+                            price = result.estimatedCost,
+                            imageUri = result.imageUri
                         )
                         navController.navigate(route) {
-                            popUpTo(Screen.Camera.route) { inclusive = true }
+                            popUpTo(Screen.RentalCreate.route) { inclusive = true }
                         }
                     } else {
                         val route = Screen.JobCreate.createRoute(
                             title  = result.title,
                             desc   = result.description,
                             cat    = result.category,
-                            budget = result.estimatedCost
+                            budget = result.estimatedCost,
+                            imageUri = result.imageUri
                         )
                         navController.navigate(route) {
-                            popUpTo(Screen.Camera.route) { inclusive = true }
+                            popUpTo(Screen.JobCreate.route) { inclusive = true }
                         }
                     }
                 },
@@ -144,7 +147,8 @@ fun NavGraph(
                 navArgument("title")  { type = NavType.StringType; defaultValue = "" },
                 navArgument("desc")   { type = NavType.StringType; defaultValue = "" },
                 navArgument("cat")    { type = NavType.StringType; defaultValue = "" },
-                navArgument("budget") { type = NavType.StringType; defaultValue = "" }
+                navArgument("budget") { type = NavType.StringType; defaultValue = "" },
+                navArgument("imageUri") { type = NavType.StringType; defaultValue = "" }
             )
         ) {
             JobCreateScreen(

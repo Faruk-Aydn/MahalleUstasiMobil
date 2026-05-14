@@ -21,18 +21,20 @@ sealed class Screen(val route: String) {
         fun createRoute(mode: String = "job") = "camera?mode=$mode"
     }
 
-    data object JobCreate : Screen("job_create?title={title}&desc={desc}&cat={cat}&budget={budget}") {
+    data object JobCreate : Screen("job_create?title={title}&desc={desc}&cat={cat}&budget={budget}&imageUri={imageUri}") {
         fun createRoute(
             title: String? = null,
             desc: String? = null,
             cat: String? = null,
-            budget: String? = null
+            budget: String? = null,
+            imageUri: String? = null
         ): String {
             val params = buildList {
                 title?.let  { add("title=${Uri.encode(it)}")  }
                 desc?.let   { add("desc=${Uri.encode(it)}")   }
                 cat?.let    { add("cat=${Uri.encode(it)}")    }
                 budget?.let { add("budget=${Uri.encode(it)}") }
+                imageUri?.let { add("imageUri=${Uri.encode(it)}") }
             }
             return if (params.isEmpty()) "job_create" else "job_create?${params.joinToString("&")}"
         }
@@ -47,18 +49,20 @@ sealed class Screen(val route: String) {
         fun createRoute(rentalId: String) = "rental_detail/$rentalId"
     }
 
-    data object RentalCreate : Screen("rental_create?title={title}&desc={desc}&cat={cat}&price={price}") {
+    data object RentalCreate : Screen("rental_create?title={title}&desc={desc}&cat={cat}&price={price}&imageUri={imageUri}") {
         fun createRoute(
             title: String? = null,
             desc: String? = null,
             cat: String? = null,
-            price: String? = null
+            price: String? = null,
+            imageUri: String? = null
         ): String {
             val params = buildList {
                 title?.let  { add("title=${Uri.encode(it)}")  }
                 desc?.let   { add("desc=${Uri.encode(it)}")   }
                 cat?.let    { add("cat=${Uri.encode(it)}")    }
                 price?.let  { add("price=${Uri.encode(it)}")  }
+                imageUri?.let { add("imageUri=${Uri.encode(it)}") }
             }
             return if (params.isEmpty()) "rental_create" else "rental_create?${params.joinToString("&")}"
         }
