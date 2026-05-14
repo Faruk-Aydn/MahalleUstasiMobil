@@ -28,7 +28,7 @@ class AnalyzeUserReviewsUseCase @Inject constructor() {
         emit(Resource.Loading)
         try {
             val generativeModel = GenerativeModel(
-                modelName = "gemini-2.0-flash-lite", // Hızlı ve verimli
+                modelName = "gemini-2.5-flash-lite", // Stable, ultra-fast, low-cost
                 apiKey = BuildConfig.GEMINI_API_KEY
             )
 

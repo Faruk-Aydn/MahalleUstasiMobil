@@ -12,18 +12,22 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import androidx.lifecycle.SavedStateHandle
 
 @HiltViewModel
 class CameraViewModel @Inject constructor(
-    private val analyzeImageUseCase: AnalyzeImageUseCase
+    private val analyzeImageUseCase: AnalyzeImageUseCase,
+    savedStateHandle: SavedStateHandle
 ) : ViewModel() {
+
+    private val mode: String = savedStateHandle.get<String>("mode") ?: "job"
 
     private val _analysisState = MutableStateFlow<Resource<AiAnalysisResult>>(Resource.Idle)
     val analysisState: StateFlow<Resource<AiAnalysisResult>> = _analysisState.asStateFlow()
 
     fun analyzeImage(bitmap: Bitmap) {
         viewModelScope.launch {
-            analyzeImageUseCase(bitmap).collect { result ->
+            analyzeImageUseCase(bitmap, mode).collect { result ->
                 _analysisState.value = result
             }
         }
