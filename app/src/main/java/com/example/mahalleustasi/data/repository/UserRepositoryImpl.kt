@@ -80,4 +80,15 @@ class UserRepositoryImpl @Inject constructor(
             Resource.Error(e.localizedMessage ?: "FCM Token güncellenemedi")
         }
     }
+
+    override suspend fun incrementCompletedJobsCount(userId: String): Resource<Unit> {
+        return try {
+            usersCollection.document(userId)
+                .update("completedJobsCount", com.google.firebase.firestore.FieldValue.increment(1))
+                .await()
+            Resource.Success(Unit)
+        } catch (e: Exception) {
+            Resource.Error(e.localizedMessage ?: "Tamamlanan iş sayısı güncellenemedi")
+        }
+    }
 }

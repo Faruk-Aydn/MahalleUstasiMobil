@@ -11,4 +11,6 @@ interface UserRepository {
     suspend fun createUser(user: User): Resource<Unit>
     suspend fun addSavedAddress(userId: String, address: SavedAddress): Resource<Unit>
     suspend fun updateFcmToken(userId: String, token: String): Resource<Unit>
+    /** Kullanıcının tamamlanan iş sayısını 1 artırır */
+    suspend fun incrementCompletedJobsCount(userId: String): Resource<Unit>
 }

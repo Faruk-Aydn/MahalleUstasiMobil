@@ -9,6 +9,7 @@ import com.example.mahalleustasi.domain.repository.ChatRepository
 import com.example.mahalleustasi.domain.repository.JobRepository
 import com.example.mahalleustasi.domain.repository.OfferRepository
 import com.example.mahalleustasi.domain.repository.ReviewRepository
+import com.example.mahalleustasi.domain.repository.UserRepository
 import com.example.mahalleustasi.domain.usecase.ai.AnalyzeUserReviewsUseCase
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -44,6 +45,7 @@ class JobDetailViewModel @Inject constructor(
     private val offerRepository: OfferRepository,
     private val reviewRepository: ReviewRepository,
     private val chatRepository: ChatRepository,
+    private val userRepository: UserRepository,
     private val analyzeUserReviewsUseCase: AnalyzeUserReviewsUseCase,
     private val auth: FirebaseAuth,
     savedStateHandle: SavedStateHandle
@@ -185,41 +187,55 @@ class JobDetailViewModel @Inject constructor(
     fun completeJob() {
         val job = _uiState.value.job ?: return
         val acceptedOffer = _uiState.value.offers.find { it.status == OfferStatus.ACCEPTED } ?: return
+        val isOwner = job.postedByUserId == currentUserId
+        val isWorker = acceptedOffer.offeredByUserId == currentUserId
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
-            val result = jobRepository.updateJobStatus(jobId, JobStatus.COMPLETED)
+            // Yeni durum ne olacak?
+            val nextStatus = when {
+                // Usta işi bitirdiğinde -> Onay Bekliyor
+                isWorker && job.status == JobStatus.IN_PROGRESS -> JobStatus.WAITING_CONFIRMATION
+                // Müşteri onayladığında (Onay Bekliyor durumunda) -> Tamamlandı
+                isOwner && job.status == JobStatus.WAITING_CONFIRMATION -> JobStatus.COMPLETED
+                // Geriye dönük uyumluluk veya hatalı durumlar için (müşteri direkt bitirmek isterse vb.)
+                isOwner && job.status == JobStatus.IN_PROGRESS -> JobStatus.COMPLETED
+                else -> JobStatus.COMPLETED
+            }
+
+            val result = jobRepository.updateJobStatus(jobId, nextStatus)
             if (result is Resource.Error) {
                 _uiState.update { it.copy(isLoading = false, error = result.message) }
                 return@launch
             }
 
-            val isOwner = job.postedByUserId == currentUserId
-            
-            val navArgs = if (isOwner) {
-                // İlan sahibi -> Ustayı değerlendirsin
-                ReviewNavArgs(
-                    jobId = jobId,
-                    revieweeId = acceptedOffer.offeredByUserId,
-                    revieweeName = acceptedOffer.offeredByUserName,
-                    role = "AS_WORKER"
-                )
-            } else {
-                // Usta -> İş sahibini değerlendirsin
-                ReviewNavArgs(
-                    jobId = jobId,
-                    revieweeId = job.postedByUserId,
-                    revieweeName = job.postedByUserName,
-                    role = "AS_CLIENT"
-                )
-            }
+            // Eğer durum COMPLETED olduysa değerlendirme sayfasına yönlendir
+            if (nextStatus == JobStatus.COMPLETED) {
+                // İş tamamlandığında her iki tarafın da tamamlanan iş sayısını artır
+                userRepository.incrementCompletedJobsCount(job.postedByUserId)
+                userRepository.incrementCompletedJobsCount(acceptedOffer.offeredByUserId)
 
-            _uiState.update {
-                it.copy(
-                    isLoading = false,
-                    navigateToReview = navArgs
-                )
+                val navArgs = if (isOwner) {
+                    ReviewNavArgs(
+                        jobId = jobId,
+                        revieweeId = acceptedOffer.offeredByUserId,
+                        revieweeName = acceptedOffer.offeredByUserName,
+                        role = "AS_WORKER"
+                    )
+                } else {
+                    ReviewNavArgs(
+                        jobId = jobId,
+                        revieweeId = job.postedByUserId,
+                        revieweeName = job.postedByUserName,
+                        role = "AS_CLIENT"
+                    )
+                }
+                _uiState.update { it.copy(isLoading = false, navigateToReview = navArgs) }
+            } else {
+                // Sadece durum değişti (Onay Bekliyor), sayfayı yenile
+                _uiState.update { it.copy(isLoading = false) }
+                loadJobDetail()
             }
         }
     }
