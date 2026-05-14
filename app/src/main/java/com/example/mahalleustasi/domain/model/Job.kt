@@ -36,6 +36,7 @@ enum class JobCategory(val displayName: String) {
 enum class JobStatus(val displayName: String) {
     OPEN("Açık"),
     IN_PROGRESS("Devam Ediyor"),
+    WAITING_CONFIRMATION("Onay Bekliyor"),
     COMPLETED("Tamamlandı"),
     CANCELLED("İptal Edildi")
 }

@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -18,6 +19,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -199,6 +201,7 @@ private fun JobDetailContent(
         val statusColor = when (job.status) {
             JobStatus.OPEN -> Color(0xFF4CAF50)
             JobStatus.IN_PROGRESS -> Color(0xFF2196F3)
+            JobStatus.WAITING_CONFIRMATION -> BrandOrange80
             JobStatus.COMPLETED -> Color.Gray
             JobStatus.CANCELLED -> Color(0xFFF44336)
         }
@@ -340,7 +343,7 @@ private fun JobDetailContent(
 
         // ── Alt Butonlar (Dinamik) ─────────────────────────────────────────
         when {
-            (isOwner || isAcceptedWorker) && job.status == JobStatus.IN_PROGRESS -> {
+            (isOwner || isAcceptedWorker) && (job.status == JobStatus.IN_PROGRESS || job.status == JobStatus.WAITING_CONFIRMATION) -> {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     // Mesajlaşma Butonu
                     Button(
@@ -349,26 +352,53 @@ private fun JobDetailContent(
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Icon(Icons.Default.Chat, null, tint = Color.White)
+                        Icon(Icons.AutoMirrored.Filled.Chat, null, tint = Color.White)
                         Spacer(Modifier.width(8.dp))
                         Text("Sohbete Git", color = Color.White, fontWeight = FontWeight.Bold)
                     }
 
-                    // İş Tamamla Butonu (Artık her iki taraf da bitirebilir)
+                    // Dinamik Tamamlama Butonu
+                    val buttonText = when {
+                        isAcceptedWorker && job.status == JobStatus.IN_PROGRESS -> "İşi Bitirdim / Onaya Gönder"
+                        isOwner && job.status == JobStatus.WAITING_CONFIRMATION -> "İşi Onayla ve Tamamla"
+                        isOwner && job.status == JobStatus.IN_PROGRESS -> "Ustanın Bitirmesi Bekleniyor"
+                        isAcceptedWorker && job.status == JobStatus.WAITING_CONFIRMATION -> "Onay Bekleniyor..."
+                        else -> "İşi Tamamla"
+                    }
+                    
+                    val isEnabled = (isAcceptedWorker && job.status == JobStatus.IN_PROGRESS) || 
+                                    (isOwner && job.status == JobStatus.WAITING_CONFIRMATION)
+
                     Button(
                         onClick = onCompleteJob,
                         modifier = Modifier.fillMaxWidth().height(56.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isEnabled) Color(0xFF4CAF50) else Color.Gray.copy(alpha = 0.5f)
+                        ),
                         shape = RoundedCornerShape(12.dp),
-                        enabled = !isLoading
+                        enabled = !isLoading && isEnabled
                     ) {
                         if (isLoading) {
                             CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
                         } else {
-                            Icon(Icons.Default.CheckCircle, null, tint = Color.White)
+                            Icon(
+                                if (isEnabled) Icons.Default.CheckCircle else Icons.Default.HourglassEmpty, 
+                                null, 
+                                tint = Color.White
+                            )
                             Spacer(Modifier.width(8.dp))
-                            Text("İşi Tamamla", color = Color.White, fontWeight = FontWeight.Bold)
+                            Text(buttonText, color = Color.White, fontWeight = FontWeight.Bold)
                         }
+                    }
+                    
+                    if (isOwner && job.status == JobStatus.WAITING_CONFIRMATION) {
+                        Text(
+                            "Usta işi bitirdiğini bildirdi. Lütfen kontrol edip onaylayın.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFF4CAF50),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
                 }
             }
@@ -413,7 +443,7 @@ private fun JobDetailContent(
                             modifier = Modifier.fillMaxWidth().height(52.dp),
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            Icon(Icons.Default.Chat, null)
+                            Icon(Icons.AutoMirrored.Filled.Chat, null)
                             Spacer(Modifier.width(8.dp))
                             Text("Geçmiş Sohbeti Gör", fontWeight = FontWeight.Bold)
                         }

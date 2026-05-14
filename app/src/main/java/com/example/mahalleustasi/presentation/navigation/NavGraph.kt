@@ -16,6 +16,9 @@ import com.example.mahalleustasi.presentation.screens.job.JobCreateScreen
 import com.example.mahalleustasi.presentation.screens.job.JobDetailScreen
 import com.example.mahalleustasi.presentation.screens.offers.OffersScreen
 import com.example.mahalleustasi.presentation.screens.profile.ProfileScreen
+import com.example.mahalleustasi.presentation.screens.rental.RentalCreateScreen
+import com.example.mahalleustasi.presentation.screens.rental.RentalDetailScreen
+import com.example.mahalleustasi.presentation.screens.rental.RentalListScreen
 import com.example.mahalleustasi.presentation.screens.review.ReviewScreen
 
 @Composable
@@ -25,9 +28,9 @@ fun NavGraph(
     modifier: Modifier = Modifier
 ) {
     NavHost(
-        navController  = navController,
+        navController    = navController,
         startDestination = if (isLoggedIn) Screen.Home.route else Screen.Login.route,
-        modifier = modifier
+        modifier         = modifier
     ) {
 
         // ── Auth ──────────────────────────────────────────────────────────────
@@ -58,34 +61,76 @@ fun NavGraph(
             HomeScreen(
                 onNavigateToCreateJob = { navController.navigate(Screen.JobCreate.createRoute()) },
                 onNavigateToProfile   = { userId -> navController.navigate(Screen.Profile.createRoute(userId)) },
-                onNavigateToJobDetail = { jobId -> navController.navigate(Screen.JobDetail.createRoute(jobId)) }
+                onNavigateToJobDetail = { jobId  -> navController.navigate(Screen.JobDetail.createRoute(jobId)) }
             )
         }
 
         // ── Teklifler ─────────────────────────────────────────────────────────
         composable(Screen.Offers.route) {
             OffersScreen(
-                onNavigateToJobDetail = { jobId ->
-                    navController.navigate(Screen.JobDetail.createRoute(jobId))
-                },
-                onNavigateToChat = { chatId ->
-                    navController.navigate(Screen.Chat.createRoute(chatId))
-                }
+                onNavigateToJobDetail = { jobId -> navController.navigate(Screen.JobDetail.createRoute(jobId)) },
+                onNavigateToChat      = { chatId -> navController.navigate(Screen.Chat.createRoute(chatId)) }
+            )
+        }
+
+        // ── Eşya Kiralama ─────────────────────────────────────────────────────
+        composable(Screen.Rentals.route) {
+            RentalListScreen(
+                onNavigateToDetail = { rentalId -> navController.navigate(Screen.RentalDetail.createRoute(rentalId)) },
+                onNavigateToCreate = { navController.navigate(Screen.RentalCreate.route) }
+            )
+        }
+
+        composable(
+            route     = Screen.RentalDetail.route,
+            arguments = listOf(navArgument("rentalId") { type = NavType.StringType })
+        ) {
+            RentalDetailScreen(onNavigateBack = { navController.popBackStack() })
+        }
+
+        composable(
+            route = Screen.RentalCreate.route,
+            arguments = listOf(
+                navArgument("title") { type = NavType.StringType; defaultValue = "" },
+                navArgument("desc")  { type = NavType.StringType; defaultValue = "" },
+                navArgument("cat")   { type = NavType.StringType; defaultValue = "" },
+                navArgument("price") { type = NavType.StringType; defaultValue = "" }
+            )
+        ) {
+            RentalCreateScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToAiAssistant = { navController.navigate(Screen.Camera.createRoute("rental")) }
             )
         }
 
         // ── Kamera / AI Asistan ───────────────────────────────────────────────
-        composable(Screen.Camera.route) {
+        composable(
+            route = Screen.Camera.route,
+            arguments = listOf(navArgument("mode") { type = NavType.StringType; defaultValue = "job" })
+        ) { backStackEntry ->
+            val mode = backStackEntry.arguments?.getString("mode") ?: "job"
             CameraScreen(
                 onAnalysisSuccess = { result ->
-                    val route = Screen.JobCreate.createRoute(
-                        title  = result.title,
-                        desc   = result.description,
-                        cat    = result.category.name,
-                        budget = result.estimatedCost
-                    )
-                    navController.navigate(route) {
-                        popUpTo(Screen.Camera.route) { inclusive = true }
+                    if (mode == "rental") {
+                        val route = Screen.RentalCreate.createRoute(
+                            title = result.title,
+                            desc  = result.description,
+                            cat   = result.category,
+                            price = result.estimatedCost
+                        )
+                        navController.navigate(route) {
+                            popUpTo(Screen.Camera.route) { inclusive = true }
+                        }
+                    } else {
+                        val route = Screen.JobCreate.createRoute(
+                            title  = result.title,
+                            desc   = result.description,
+                            cat    = result.category,
+                            budget = result.estimatedCost
+                        )
+                        navController.navigate(route) {
+                            popUpTo(Screen.Camera.route) { inclusive = true }
+                        }
                     }
                 },
                 onBackClick = { navController.popBackStack() }
@@ -94,7 +139,7 @@ fun NavGraph(
 
         // ── İlan Oluştur ──────────────────────────────────────────────────────
         composable(
-            route = Screen.JobCreate.route,
+            route     = Screen.JobCreate.route,
             arguments = listOf(
                 navArgument("title")  { type = NavType.StringType; defaultValue = "" },
                 navArgument("desc")   { type = NavType.StringType; defaultValue = "" },
@@ -103,14 +148,14 @@ fun NavGraph(
             )
         ) {
             JobCreateScreen(
-                onNavigateBack = { navController.popBackStack() },
+                onNavigateBack          = { navController.popBackStack() },
                 onNavigateToAiAssistant = { navController.navigate(Screen.Camera.route) }
             )
         }
 
         // ── İlan Detayı ───────────────────────────────────────────────────────
         composable(
-            route = Screen.JobDetail.route,
+            route     = Screen.JobDetail.route,
             arguments = listOf(navArgument("jobId") { type = NavType.StringType })
         ) {
             JobDetailScreen(
@@ -126,17 +171,15 @@ fun NavGraph(
 
         // ── Sohbet ────────────────────────────────────────────────────────────
         composable(
-            route = Screen.Chat.route,
+            route     = Screen.Chat.route,
             arguments = listOf(navArgument("chatId") { type = NavType.StringType })
         ) {
-            ChatScreen(
-                onNavigateBack = { navController.popBackStack() }
-            )
+            ChatScreen(onNavigateBack = { navController.popBackStack() })
         }
 
         // ── Değerlendirme ─────────────────────────────────────────────────────
         composable(
-            route = Screen.Review.route,
+            route     = Screen.Review.route,
             arguments = listOf(
                 navArgument("jobId")        { type = NavType.StringType },
                 navArgument("revieweeId")   { type = NavType.StringType },
@@ -156,14 +199,14 @@ fun NavGraph(
 
         // ── Profil ────────────────────────────────────────────────────────────
         composable(
-            route = Screen.Profile.route,
+            route     = Screen.Profile.route,
             arguments = listOf(navArgument("userId") { type = NavType.StringType })
         ) { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId") ?: ""
             ProfileScreen(
                 userId         = userId,
                 onNavigateBack = { navController.popBackStack() },
-                onLogout       = {
+                onLogout = {
                     navController.navigate(Screen.Login.route) {
                         popUpTo(0) { inclusive = true }
                     }

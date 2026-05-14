@@ -10,13 +10,16 @@ sealed class Screen(val route: String) {
     // ── Main ──────────────────────────────────────────────────────────────────
     data object Home    : Screen("home")
     data object Offers  : Screen("offers")
+    data object Rentals : Screen("rentals")
 
     data object Profile : Screen("profile/{userId}") {
         fun createRoute(userId: String) = "profile/$userId"
     }
 
     // ── Detay ─────────────────────────────────────────────────────────────────
-    data object Camera : Screen("camera")
+    data object Camera : Screen("camera?mode={mode}") {
+        fun createRoute(mode: String = "job") = "camera?mode=$mode"
+    }
 
     data object JobCreate : Screen("job_create?title={title}&desc={desc}&cat={cat}&budget={budget}") {
         fun createRoute(
@@ -37,6 +40,28 @@ sealed class Screen(val route: String) {
 
     data object JobDetail : Screen("job_detail/{jobId}") {
         fun createRoute(jobId: String) = "job_detail/$jobId"
+    }
+
+    // ── Rental ────────────────────────────────────────────────────────────────
+    data object RentalDetail : Screen("rental_detail/{rentalId}") {
+        fun createRoute(rentalId: String) = "rental_detail/$rentalId"
+    }
+
+    data object RentalCreate : Screen("rental_create?title={title}&desc={desc}&cat={cat}&price={price}") {
+        fun createRoute(
+            title: String? = null,
+            desc: String? = null,
+            cat: String? = null,
+            price: String? = null
+        ): String {
+            val params = buildList {
+                title?.let  { add("title=${Uri.encode(it)}")  }
+                desc?.let   { add("desc=${Uri.encode(it)}")   }
+                cat?.let    { add("cat=${Uri.encode(it)}")    }
+                price?.let  { add("price=${Uri.encode(it)}")  }
+            }
+            return if (params.isEmpty()) "rental_create" else "rental_create?${params.joinToString("&")}"
+        }
     }
 
     // ── Chat ──────────────────────────────────────────────────────────────────

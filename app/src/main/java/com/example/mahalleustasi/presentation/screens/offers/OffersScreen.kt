@@ -1,20 +1,23 @@
 package com.example.mahalleustasi.presentation.screens.offers
 
 import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -22,6 +25,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.mahalleustasi.domain.model.Offer
 import com.example.mahalleustasi.domain.model.OfferStatus
 import com.example.mahalleustasi.ui.theme.BrandOrange80
+import com.example.mahalleustasi.ui.theme.ForestGreen40
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -34,10 +38,8 @@ fun OffersScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var selectedTab by remember { mutableIntStateOf(0) }
-    val tabs = listOf("Verdiğim Teklifler", "Aldığım Teklifler")
     val context = LocalContext.current
 
-    // Teklif kabul sonrası Chat'e git
     LaunchedEffect(uiState.navigateToChatId) {
         uiState.navigateToChatId?.let { chatId ->
             onNavigateToChat(chatId)
@@ -45,7 +47,6 @@ fun OffersScreen(
         }
     }
 
-    // Başarı mesajı toast
     LaunchedEffect(uiState.actionSuccess) {
         uiState.actionSuccess?.let {
             Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
@@ -56,36 +57,46 @@ fun OffersScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Tekliflerim", fontWeight = FontWeight.Bold) }
+                title = {
+                    Column {
+                        Text("Tekliflerim", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                        Text(
+                            "${uiState.sentOffers.size} gönderilen · ${uiState.receivedOffers.size} alınan",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
+                    }
+                }
             )
         }
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            // ── Tab Seçici ──────────────────────────────────────────────────
+        Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+            // ── Tab Row ─────────────────────────────────────────────────────
             TabRow(
                 selectedTabIndex = selectedTab,
-                contentColor = BrandOrange80
+                containerColor   = MaterialTheme.colorScheme.surface,
+                contentColor     = BrandOrange80
             ) {
-                tabs.forEachIndexed { index, title ->
+                listOf(
+                    "📤 Verdiğim (${uiState.sentOffers.size})",
+                    "📥 Aldığım (${uiState.receivedOffers.size})"
+                ).forEachIndexed { index, title ->
                     Tab(
                         selected = selectedTab == index,
-                        onClick = { selectedTab = index },
+                        onClick  = { selectedTab = index },
                         text = {
                             Text(
                                 title,
                                 fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Normal,
-                                fontSize = 13.sp
+                                fontSize = 12.sp,
+                                maxLines = 1
                             )
                         }
                     )
                 }
             }
 
-            // ── İçerik ─────────────────────────────────────────────────────
+            // ── İçerik ──────────────────────────────────────────────────────
             when {
                 uiState.isLoading -> {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -94,15 +105,16 @@ fun OffersScreen(
                 }
                 selectedTab == 0 -> {
                     SentOffersTab(
-                        offers = uiState.sentOffers,
+                        offers     = uiState.sentOffers,
+                        jobTitles  = uiState.jobTitles,
                         onJobClick = onNavigateToJobDetail
                     )
                 }
                 selectedTab == 1 -> {
                     ReceivedOffersTab(
-                        offers = uiState.receivedOffers,
-                        onAccept = { viewModel.acceptOffer(it) },
-                        onReject = { viewModel.rejectOffer(it.id) },
+                        offers     = uiState.receivedOffers,
+                        onAccept   = { viewModel.acceptOffer(it) },
+                        onReject   = { viewModel.rejectOffer(it.id) },
                         onJobClick = onNavigateToJobDetail
                     )
                 }
@@ -115,17 +127,22 @@ fun OffersScreen(
 @Composable
 private fun SentOffersTab(
     offers: List<Offer>,
+    jobTitles: Map<String, String>,
     onJobClick: (String) -> Unit
 ) {
     if (offers.isEmpty()) {
         EmptyState(icon = "📤", title = "Henüz teklif vermediniz", sub = "Çevrenizdeki ilanlara teklif verin!")
     } else {
         LazyColumn(
-            contentPadding = PaddingValues(16.dp),
+            contentPadding      = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(offers) { offer ->
-                SentOfferCard(offer = offer, onClick = { onJobClick(offer.jobId) })
+                SentOfferCard(
+                    offer    = offer,
+                    jobTitle = jobTitles[offer.jobId] ?: "İlan yükleniyor...",
+                    onClick  = { onJobClick(offer.jobId) }
+                )
             }
         }
     }
@@ -140,15 +157,19 @@ private fun ReceivedOffersTab(
     onJobClick: (String) -> Unit
 ) {
     if (offers.isEmpty()) {
-        EmptyState(icon = "📥", title = "İlanlarınıza henüz teklif gelmedi", sub = "İlanlarınıza teklif geldiğinde burada görünecek.")
+        EmptyState(
+            icon  = "📥",
+            title = "Henüz teklif gelmedi",
+            sub   = "İlanlarınıza teklif geldiğinde burada görünecek."
+        )
     } else {
         LazyColumn(
-            contentPadding = PaddingValues(16.dp),
+            contentPadding      = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(offers) { offer ->
                 ReceivedOfferCard(
-                    offer = offer,
+                    offer    = offer,
                     onAccept = { onAccept(offer) },
                     onReject = { onReject(offer) },
                     onJobClick = { onJobClick(offer.jobId) }
@@ -158,55 +179,73 @@ private fun ReceivedOffersTab(
     }
 }
 
-// ─── Verdiğim Teklif Kartı ─────────────────────────────────────────────────────
+// ─── Verdiğim Teklif Kartı (YENİ: İlan başlığı gösteriliyor) ─────────────────
 @Composable
-private fun SentOfferCard(offer: Offer, onClick: () -> Unit) {
-    val date = SimpleDateFormat("dd.MM.yyyy", Locale("tr")).format(Date(offer.createdAt))
+private fun SentOfferCard(offer: Offer, jobTitle: String, onClick: () -> Unit) {
+    val date = SimpleDateFormat("dd MMM yyyy", Locale("tr")).format(Date(offer.createdAt))
 
     Card(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        onClick   = onClick,
+        modifier  = Modifier.fillMaxWidth(),
+        shape     = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors    = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier              = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment     = Alignment.CenterVertically
             ) {
-                Text(date, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-                StatusChip(offer.status)
+                // İlan başlığı — Artık ID değil gerçek isim!
+                Text(
+                    text     = jobTitle,
+                    fontWeight = FontWeight.Bold,
+                    style    = MaterialTheme.typography.bodyLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(Modifier.width(8.dp))
+                OfferStatusChip(offer.status)
             }
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = "İlan: ${offer.jobId.take(8)}...",
-                fontWeight = FontWeight.SemiBold,
-                style = MaterialTheme.typography.bodyLarge
-            )
+
             Spacer(Modifier.height(4.dp))
-            Text(offer.description, maxLines = 2, style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+            Text(date, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+
+            if (offer.description.isNotBlank()) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    offer.description,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    style    = MaterialTheme.typography.bodyMedium,
+                    color    = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
+            }
+
             Spacer(Modifier.height(12.dp))
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
             Spacer(Modifier.height(12.dp))
+
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier              = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment     = Alignment.CenterVertically
             ) {
-                Text("Teklifiniz:", style = MaterialTheme.typography.bodyMedium)
+                Text("Teklifiniz:", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
                 Text(
-                    text = "${offer.price} TL",
-                    color = BrandOrange80,
+                    text       = "${offer.price.toLong()} ₺",
+                    color      = BrandOrange80,
                     fontWeight = FontWeight.ExtraBold,
-                    fontSize = 18.sp
+                    fontSize   = 20.sp
                 )
             }
         }
     }
 }
 
-// ─── Aldığım Teklif Kartı ─────────────────────────────────────────────────────
+// ─── Aldığım Teklif Kartı (YENİ: Profesyonel avatar & layout) ─────────────────
 @Composable
 private fun ReceivedOfferCard(
     offer: Offer,
@@ -214,79 +253,114 @@ private fun ReceivedOfferCard(
     onReject: () -> Unit,
     onJobClick: () -> Unit
 ) {
-    val date = SimpleDateFormat("dd.MM.yyyy", Locale("tr")).format(Date(offer.createdAt))
+    val date      = SimpleDateFormat("dd MMM yyyy", Locale("tr")).format(Date(offer.createdAt))
     val isPending = offer.status == OfferStatus.PENDING
+    val initials  = offer.offeredByUserName.trim().split(" ")
+        .take(2).mapNotNull { it.firstOrNull()?.uppercaseChar() }.joinToString("")
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        modifier  = Modifier.fillMaxWidth(),
+        shape     = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors    = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
+            // ── Header: Avatar + İsim + Durum ─────────────────────────────
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment     = Alignment.CenterVertically,
+                modifier              = Modifier.fillMaxWidth()
             ) {
-                Text(
-                    text = offer.offeredByUserName,
-                    fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.bodyLarge
-                )
-                StatusChip(offer.status)
+                // Avatar
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(BrandOrange80.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text     = initials.ifEmpty { "?" },
+                        color    = BrandOrange80,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
+                    )
+                }
+                Spacer(Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text       = offer.offeredByUserName,
+                        fontWeight = FontWeight.Bold,
+                        style      = MaterialTheme.typography.bodyLarge
+                    )
+                    Text(date, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                }
+                OfferStatusChip(offer.status)
             }
 
-            Spacer(Modifier.height(4.dp))
-            Text(date, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-            Spacer(Modifier.height(8.dp))
-            Text(offer.description, style = MaterialTheme.typography.bodyMedium)
             Spacer(Modifier.height(12.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            // Teklif metni
+            if (offer.description.isNotBlank()) {
                 Text(
-                    text = "${offer.price} TL",
-                    color = BrandOrange80,
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 20.sp
+                    "\"${offer.description}\"",
+                    style    = MaterialTheme.typography.bodyMedium,
+                    color    = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis
                 )
+                Spacer(Modifier.height(12.dp))
+            }
 
-                // Sadece PENDING tekliflerde Kabul/Red butonları göster
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+            Spacer(Modifier.height(12.dp))
+
+            // ── Alt: Fiyat + Butonlar ─────────────────────────────────────
+            Row(
+                modifier              = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment     = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text("Teklif Fiyatı", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                    Text(
+                        text       = "${offer.price.toLong()} ₺",
+                        color      = BrandOrange80,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize   = 22.sp
+                    )
+                }
+
                 if (isPending) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(
                             onClick = onReject,
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = MaterialTheme.colorScheme.error
-                            ),
-                            shape = RoundedCornerShape(8.dp),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+                            colors  = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                            shape   = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp)
                         ) {
                             Icon(Icons.Default.Close, null, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text("Reddet", fontSize = 12.sp)
+                            Text("Reddet", fontSize = 13.sp)
                         }
-
                         Button(
                             onClick = onAccept,
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
-                            shape = RoundedCornerShape(8.dp),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+                            colors  = ButtonDefaults.buttonColors(containerColor = ForestGreen40),
+                            shape   = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp)
                         ) {
                             Icon(Icons.Default.Check, null, modifier = Modifier.size(16.dp), tint = Color.White)
                             Spacer(Modifier.width(4.dp))
-                            Text("Kabul Et", color = Color.White, fontSize = 12.sp)
+                            Text("Kabul Et", color = Color.White, fontSize = 13.sp)
                         }
                     }
-                } else {
-                    // Kabul edilmişse "Sohbete Git" butonu
-                    if (offer.status == OfferStatus.ACCEPTED) {
-                        TextButton(onClick = onJobClick) {
-                            Text("İlana Git →")
-                        }
+                } else if (offer.status == OfferStatus.ACCEPTED) {
+                    FilledTonalButton(
+                        onClick = onJobClick,
+                        shape   = RoundedCornerShape(10.dp)
+                    ) {
+                        Icon(Icons.Default.ArrowForward, null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("İlana Git")
                     }
                 }
             }
@@ -294,37 +368,38 @@ private fun ReceivedOfferCard(
     }
 }
 
-// ─── Status Chip ──────────────────────────────────────────────────────────────
+// ─── Durum Chip ───────────────────────────────────────────────────────────────
 @Composable
-fun StatusChip(status: OfferStatus) {
+fun OfferStatusChip(status: OfferStatus) {
     val (color, label) = when (status) {
         OfferStatus.PENDING  -> Color(0xFFFFA000) to "Beklemede"
         OfferStatus.ACCEPTED -> Color(0xFF4CAF50) to "Kabul Edildi"
         OfferStatus.REJECTED -> Color(0xFFF44336) to "Reddedildi"
     }
-    Surface(
-        color = color.copy(alpha = 0.12f),
-        shape = RoundedCornerShape(16.dp)
-    ) {
+    Surface(color = color.copy(alpha = 0.12f), shape = RoundedCornerShape(20.dp)) {
         Text(
-            text = label,
-            color = color,
+            text     = label,
+            color    = color,
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-            style = MaterialTheme.typography.labelSmall,
+            style    = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold
         )
     }
 }
 
+// Eski StatusChip - geriye uyumluluk için
+@Composable
+fun StatusChip(status: OfferStatus) = OfferStatusChip(status)
+
 // ─── Boş Durum ────────────────────────────────────────────────────────────────
 @Composable
 private fun EmptyState(icon: String, title: String, sub: String) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(48.dp),
+        modifier            = Modifier.fillMaxSize().padding(48.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text(icon, fontSize = 48.sp)
+        Text(icon, fontSize = 52.sp)
         Spacer(Modifier.height(16.dp))
         Text(title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(8.dp))

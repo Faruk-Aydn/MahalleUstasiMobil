@@ -131,6 +131,7 @@ private fun StatusChip(status: JobStatus) {
     val (bg, fg) = when (status) {
         JobStatus.OPEN         -> ForestGreen40.copy(0.15f) to ForestGreen40
         JobStatus.IN_PROGRESS  -> BrandOrange80.copy(0.15f) to BrandOrange80
+        JobStatus.WAITING_CONFIRMATION -> Color(0xFF673AB7).copy(0.15f) to Color(0xFF673AB7)
         JobStatus.COMPLETED    -> Color.Gray.copy(0.15f)    to Color.Gray
         JobStatus.CANCELLED    -> MaterialTheme.colorScheme.error.copy(0.15f) to MaterialTheme.colorScheme.error
     }
